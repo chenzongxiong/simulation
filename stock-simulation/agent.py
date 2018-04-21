@@ -173,6 +173,25 @@ class AgentD(BaseAgent):
                            "selling_threshold": self._selling_threshold})
 
 
+class AgentE(BaseAgent):
+
+    def __init__(self,
+                 state=random.choice([STATE_WANT_TO_BUY, STATE_WANT_TO_SELL]),
+                 name="Agent-E"):
+        super(AgentE, self).__init__(state=state, name=name)
+
+    def buying_signal(self, price=None):
+        return self._state == STATE_WANT_TO_BUY
+
+    def selling_signal(self, price=None):
+        return self._state == STATE_WANT_TO_SELL
+
+    def __repr__(self):
+        return json.dumps({"name": self.name,
+                           "state": self.state,
+                           "price": self.price})
+
+
 def polling(agent, prices):
     timestamp = 0
     while timestamp < len(prices):

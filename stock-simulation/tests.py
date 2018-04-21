@@ -1,7 +1,7 @@
 import unittest
-from agent import AgentN, AgentD, STATE_WANT_TO_BUY, STATE_WANT_TO_SELL
 from agent import polling, LOG
-
+from agent import STATE_WANT_TO_BUY, STATE_WANT_TO_SELL
+from agent import AgentN, AgentD, AgentE
 
 
 class AgentNTestCase(unittest.TestCase):
@@ -228,6 +228,54 @@ class AgentDTestCase(unittest.TestCase):
             agent_d.tracking(8)
             agent_d.tracking(9)
             agent_d.sell(8)
+        except AssertionError:
+            pass
+
+
+class AgentETestCase(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_buying_signal(self):
+        agent_e = AgentE(STATE_WANT_TO_BUY)
+        self.assertTrue(agent_e.buying_signal())
+
+        agent_e = AgentE(STATE_WANT_TO_SELL)
+        self.assertFalse(agent_e.buying_signal())
+
+    def test_selling_signal(self):
+        agent_e = AgentE(STATE_WANT_TO_SELL)
+        self.assertTrue(agent_e.selling_signal())
+
+        agent_e = AgentE(STATE_WANT_TO_BUY)
+        self.assertFalse(agent_e.selling_signal())
+
+    def test_buy(self):
+        agent_e = AgentE(STATE_WANT_TO_BUY)
+        agent_e.buy(4)
+        self.assertEqual(agent_e.price, 4)
+        self.assertEqual(agent_e.state, STATE_WANT_TO_SELL)
+
+        try:
+            agent_e = AgentE(STATE_WANT_TO_SELL)
+            agent_e.buy(4)
+        except AssertionError:
+            pass
+
+    def test_sell(self):
+        agent_e = AgentE(STATE_WANT_TO_SELL)
+        agent_e.sell(4)
+        self.assertIsNone(agent_e.price)
+        self.assertEqual(agent_e.state, STATE_WANT_TO_BUY)
+
+        try:
+            agent_e = AgentE(STATE_WANT_TO_BUY)
+            agent_e.sell(4)
+            self.assertIsNone(agent_e.price)
+            self.assertEqual(agent_e.state, STATE_WANT_TO_BUY)
         except AssertionError:
             pass
 
