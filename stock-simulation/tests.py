@@ -1,5 +1,7 @@
 import unittest
 from agent import AgentN, AgentD, STATE_WANT_TO_BUY, STATE_WANT_TO_SELL
+from agent import polling, LOG
+
 
 
 class AgentNTestCase(unittest.TestCase):
@@ -230,5 +232,28 @@ class AgentDTestCase(unittest.TestCase):
             pass
 
 
+def test_agent_behaviour():
+    prices = [8, 7, 4, 6, 5, 4, 7, 9, 5, 14, 21, 19, 20]
+
+    agent_n = AgentN(STATE_WANT_TO_BUY, 5, 20)
+    polling(agent_n, prices)
+    assert agent_n.profits[-1] == 17
+    LOG.debug("==============================================================")
+    agent_n = AgentN(STATE_WANT_TO_SELL, 5, 20)
+    polling(agent_n, prices)
+    assert agent_n.profits[-1] == 21
+
+    LOG.debug("==============================================================")
+    agent_d = AgentD(STATE_WANT_TO_BUY, 4, 3)
+    polling(agent_d, prices)
+    assert agent_d.profits == [-4]
+    LOG.debug("==============================================================")
+    agent_d = AgentD(STATE_WANT_TO_SELL, 4, 3)
+    polling(agent_d, prices)
+    print agent_d.profits
+    assert agent_d.profits == [4, -4]
+
+
 if __name__ == "__main__":
+    test_agent_behaviour()
     unittest.main()

@@ -1,5 +1,6 @@
 import json
 import logging
+import random
 
 LOG = logging.getLogger(__name__)
 LOG.addHandler(logging.StreamHandler())
@@ -11,12 +12,18 @@ STATE_WANT_TO_SELL = 1
 
 class BaseAgent(object):
 
-    def __init__(self, state, name="Agent-Base"):
+    def __init__(self,
+                 state,
+                 name="Agent-Base",
+                 price=None):
         self._state = state
         self.name = name
-        self.price = None
+        self.price = 0 if state == STATE_WANT_TO_SELL and \
+            price is None else price
+
         # connect to market and perform actions.
         self.connection = None
+        self.profits = []
 
     def buy(self, price):
         """Buy stock/bitcoin from market.
@@ -25,10 +32,7 @@ class BaseAgent(object):
         assert self.buying_signal(price), \
             "{} cannot buy a stock/bitcoin at price {}.\n{}".format(self.name, price,
                                                                     self.__repr__())
-
-        # TODO: buy this stock
         LOG.debug("{} buys a stock/bitconin at price {}.".format(self.name, price))
-        # sanity checking
         if self.price is None:
             self.price = price
 
@@ -44,12 +48,14 @@ class BaseAgent(object):
         """
         assert self.selling_signal(price), \
             "{} cannot sell its stock/bitcoin.\n{}".format(self.name, self.__repr__())
-        assert self.price, \
+        assert self.price is not None, \
             "{} must buy a stock/bitcoin before selling."
 
         # TODO: sell this stock
+        self.profits.append(price - self.price)
+
         LOG.debug("{} sells a stock/bitcoin at price {}, and gets profit {}."
-                  .format(self.name, price, price-self.price))
+                  .format(self.name, price, self.profits[-1]))
         # Reset `price` since we have sold it
         self.price = None
         # Switch current state from `STATE_WANT_TO_SELL` to `STATE_WANT_TO_BUY`
@@ -78,14 +84,17 @@ class BaseAgent(object):
 
 
 class AgentN(BaseAgent):
-    def __init__(self, state,
-                 lower_bound, upper_bound,
+
+    def __init__(self,
+                 state=random.choice([STATE_WANT_TO_BUY, STATE_WANT_TO_SELL]),
+                 lower_bound=random.uniform(0, 1),
+                 upper_bound=1+random.gammavariate(1.0, 1.0),
                  name="N-Agent"):
-        # TODO: Set default value for `state`, `lower_bound` and `upper_bound`
-        # from sound probability distributions
-        super(AgentN, self).__init__(state, name)
+        super(AgentN, self).__init__(state=state, name=name)
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound
+        assert self._lower_bound < self._upper_bound, \
+            "`lower_bound` must be less than `upper_bound`"
 
     def buying_signal(self, price):
         return self._state == STATE_WANT_TO_BUY and \
@@ -104,12 +113,14 @@ class AgentN(BaseAgent):
 
 
 class AgentD(BaseAgent):
-    def __init__(self, state,
-                 buyindg_threshold,
-                 selling_threshold, name="D-Agent"):
-        # `buyindg_threshold` and `selling_threshold` should be postive value
-        super(AgentD, self).__init__(state, name)
-        self._buying_threshold = buyindg_threshold
+
+    def __init__(self,
+                 state=random.choice([STATE_WANT_TO_BUY, STATE_WANT_TO_SELL]),
+                 buying_threshold=random.gammavariate(1.0, 1.0),
+                 selling_threshold=random.gammavariate(1.0, 1.0),
+                 name="D-Agent"):
+        super(AgentD, self).__init__(state=state, name=name)
+        self._buying_threshold = buying_threshold
         self._selling_threshold = selling_threshold
         self._tracked_min = None
         self._tracked_max = None
@@ -141,11 +152,15 @@ class AgentD(BaseAgent):
             (self._tracked_max - price) >= self._selling_threshold
 
     def buy(self, price):
+        self.tracking(price)
         super(AgentD, self).buy(price)
+        self._tracked_max = price
         self._tracked_min = None
 
     def sell(self, price):
+        self.tracking(price)
         super(AgentD, self).sell(price)
+        self._tracked_min = price
         self._tracked_max = None
 
     def __repr__(self):
@@ -154,5 +169,37 @@ class AgentD(BaseAgent):
                            "price": self.price,
                            "tracked_min": self._tracked_min,
                            "tracked_max": self._tracked_max,
-                           "buyindg_threshold": self._buying_threshold,
+                           "buying_threshold": self._buying_threshold,
                            "selling_threshold": self._selling_threshold})
+
+
+def polling(agent, prices):
+    timestamp = 0
+    while timestamp < len(prices):
+        # Polling buy
+        if agent.state == STATE_WANT_TO_BUY:
+            while timestamp < len(prices):
+                price = prices[timestamp]
+                timestamp += 1
+                try:
+                    agent.buy(price)
+                    LOG.info("{} buys a stock/bitcoin at price {} successfully.".format(agent.name, price))
+                    break
+                except AssertionError:
+                    LOG.info("{} could not buy a stock/bitcoin at price {}. {}".format(agent.name, price, agent.__repr__()))
+
+        # Polling sell
+        elif agent.state == STATE_WANT_TO_SELL:
+            while timestamp < len(prices):
+                price = prices[timestamp]
+                timestamp += 1
+                try:
+                    agent.sell(price)
+                    LOG.info("{} sells a stock/bitcoin at price {} successfully.".format(agent.name, price))
+                    break
+                except AssertionError:
+                    LOG.info("{} could not sell a stock/bitcoin at price {}. {}".format(agent.name, price, agent.__repr__()))
+
+
+if __name__ == "__main__":
+    pass
