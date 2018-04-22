@@ -27,7 +27,7 @@ class BaseAgent(object):
 
         self.profits = []
         # TODO: agent should have a way to connect to market to participant in.
-        self._market = market
+        # self._market = market
 
     def buy(self, price):
         """Buy stock/bitcoin from market.
@@ -43,7 +43,7 @@ class BaseAgent(object):
         # Switch current state from `STATE_WANT_TO_BUY` to `STATE_WANT_TO_SELL`
         self._state = STATE_WANT_TO_SELL
         # TODO: Emit a signal/message to a pool and wait for others who want to buy.
-        self._market.get(self.name)
+        # self._market.get(self.name)
 
     def sell(self, price):
         """Send stock/bitcoin to market.
@@ -64,7 +64,7 @@ class BaseAgent(object):
         # Switch current state from `STATE_WANT_TO_SELL` to `STATE_WANT_TO_BUY`
         self._state = STATE_WANT_TO_BUY
         # TODO: Emit a signal/message to a pool and wait for others who want to sell
-        self._market.poll_selling(pickle.dumps([self.name, self]))
+        # self._market.poll_selling(pickle.dumps([self.name, self]))
 
     def buying_signal(self, price):
         raise NotImplementedError("`buying_signal` must be implemented in sub-class.")

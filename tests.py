@@ -306,7 +306,6 @@ def test_agent_behaviour():
     LOG.debug("==============================================================")
     agent_d = agent.AgentD(STATE_WANT_TO_SELL, 4, 3)
     polling(agent_d, prices)
-    print agent_d.profits
     assert agent_d.profits == [4, -4]
 
 
