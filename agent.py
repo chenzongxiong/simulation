@@ -1,13 +1,16 @@
 import json
-import logging
 import random
+import pickle
+
+import log as logging
+import constants
+import market
+
 
 LOG = logging.getLogger(__name__)
-LOG.addHandler(logging.StreamHandler())
-LOG.setLevel(logging.DEBUG)
 
-STATE_WANT_TO_BUY = 0
-STATE_WANT_TO_SELL = 1
+STATE_WANT_TO_BUY = constants.STATE_WANT_TO_BUY
+STATE_WANT_TO_SELL = constants.STATE_WANT_TO_SELL
 
 
 class BaseAgent(object):
@@ -15,7 +18,8 @@ class BaseAgent(object):
     def __init__(self,
                  state,
                  name="Agent-Base",
-                 price=None):
+                 price=None,
+                 market=market.StockMarket):
         self._state = random.choice([STATE_WANT_TO_BUY, STATE_WANT_TO_SELL]) if state is None else state
         self.name = name
         self.price = 0 if self._state == STATE_WANT_TO_SELL and \
@@ -23,6 +27,7 @@ class BaseAgent(object):
 
         self.profits = []
         # TODO: agent should have a way to connect to market to participant in.
+        self._market = market
 
     def buy(self, price):
         """Buy stock/bitcoin from market.
@@ -38,6 +43,7 @@ class BaseAgent(object):
         # Switch current state from `STATE_WANT_TO_BUY` to `STATE_WANT_TO_SELL`
         self._state = STATE_WANT_TO_SELL
         # TODO: Emit a signal/message to a pool and wait for others who want to buy.
+        self._market.get(self.name)
 
     def sell(self, price):
         """Send stock/bitcoin to market.
@@ -58,12 +64,13 @@ class BaseAgent(object):
         # Switch current state from `STATE_WANT_TO_SELL` to `STATE_WANT_TO_BUY`
         self._state = STATE_WANT_TO_BUY
         # TODO: Emit a signal/message to a pool and wait for others who want to sell
+        self._market.poll_selling(pickle.dumps([self.name, self]))
 
     def buying_signal(self, price):
-        raise NotImplementedError("buying_signal must be implemented in sub-class.")
+        raise NotImplementedError("`buying_signal` must be implemented in sub-class.")
 
     def selling_signal(self, price):
-        raise NotImplementedError("selling_signal must be implemented in sub-class.")
+        raise NotImplementedError("`selling_signal` must be implemented in sub-class.")
 
     @property
     def state(self):
@@ -200,11 +207,6 @@ class AgentE(BaseAgent):
 
     def selling_signal(self, price=None):
         return self._state == STATE_WANT_TO_SELL
-
-    def __repr__(self):
-        return json.dumps({"name": self.name,
-                           "state": self.state,
-                           "price": self.price})
 
 
 def polling(agent, prices):
