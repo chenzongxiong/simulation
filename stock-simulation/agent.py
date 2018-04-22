@@ -16,14 +16,13 @@ class BaseAgent(object):
                  state,
                  name="Agent-Base",
                  price=None):
-        self._state = state
+        self._state = random.choice([STATE_WANT_TO_BUY, STATE_WANT_TO_SELL]) if state is None else state
         self.name = name
-        self.price = 0 if state == STATE_WANT_TO_SELL and \
+        self.price = 0 if self._state == STATE_WANT_TO_SELL and \
             price is None else price
 
-        # connect to market and perform actions.
-        self.connection = None
         self.profits = []
+        # TODO: agent should have a way to connect to market to participant in.
 
     def buy(self, price):
         """Buy stock/bitcoin from market.
@@ -39,8 +38,6 @@ class BaseAgent(object):
         # Switch current state from `STATE_WANT_TO_BUY` to `STATE_WANT_TO_SELL`
         self._state = STATE_WANT_TO_SELL
         # TODO: Emit a signal/message to a pool and wait for others who want to buy.
-        # Block until get the data
-        # self.connection.get()
 
     def sell(self, price):
         """Send stock/bitcoin to market.
@@ -61,7 +58,6 @@ class BaseAgent(object):
         # Switch current state from `STATE_WANT_TO_SELL` to `STATE_WANT_TO_BUY`
         self._state = STATE_WANT_TO_BUY
         # TODO: Emit a signal/message to a pool and wait for others who want to sell
-        # self.connection.push()
 
     def buying_signal(self, price):
         raise NotImplementedError("buying_signal must be implemented in sub-class.")
@@ -86,15 +82,27 @@ class BaseAgent(object):
 class AgentN(BaseAgent):
 
     def __init__(self,
-                 state=random.choice([STATE_WANT_TO_BUY, STATE_WANT_TO_SELL]),
-                 lower_bound=random.uniform(0, 1),
-                 upper_bound=1+random.gammavariate(1.0, 1.0),
-                 name="N-Agent"):
+                 state=None,
+                 lower_bound=None,
+                 upper_bound=None,
+                 name="N-Agent",
+                 lower_random_func=random.uniform,
+                 upper_random_func=random.gammavariate,
+                 **kwargs):
         super(AgentN, self).__init__(state=state, name=name)
-        self._lower_bound = lower_bound
-        self._upper_bound = upper_bound
-        assert self._lower_bound < self._upper_bound, \
-            "`lower_bound` must be less than `upper_bound`"
+
+        if not kwargs:
+            assert lower_random_func == random.uniform
+            assert upper_random_func == random.gammavariate
+            kwargs['lower_random_func_args'] = (0., 1.)
+            kwargs['upper_random_func_args'] = (4., 1.)
+
+        self._lower_bound = lower_bound if lower_bound else lower_random_func(*kwargs['lower_random_func_args'])
+        self._upper_bound = upper_bound if upper_bound else upper_random_func(*kwargs['upper_random_func_args'])
+
+        # TODO: Find two distribution to ensure `lower_bound` is always less than `upper_bound`
+        # assert self._lower_bound < self._upper_bound, \
+        #     "`lower_bound` must be less than `upper_bound`"
 
     def buying_signal(self, price):
         return self._state == STATE_WANT_TO_BUY and \
@@ -115,13 +123,20 @@ class AgentN(BaseAgent):
 class AgentD(BaseAgent):
 
     def __init__(self,
-                 state=random.choice([STATE_WANT_TO_BUY, STATE_WANT_TO_SELL]),
-                 buying_threshold=random.gammavariate(1.0, 1.0),
-                 selling_threshold=random.gammavariate(1.0, 1.0),
-                 name="D-Agent"):
+                 state=None,
+                 buying_threshold=None,
+                 selling_threshold=None,
+                 name="D-Agent",
+                 random_func=random.gammavariate,
+                 *args, **kwargs):
+
         super(AgentD, self).__init__(state=state, name=name)
-        self._buying_threshold = buying_threshold
-        self._selling_threshold = selling_threshold
+        if not args and not kwargs:
+            assert random_func == random.gammavariate
+            args = (1.0, 1.0)
+
+        self._buying_threshold = random_func(*args, **kwargs) if buying_threshold is None else buying_threshold
+        self._selling_threshold = random_func(*args, **kwargs) if selling_threshold is None else selling_threshold
         self._tracked_min = None
         self._tracked_max = None
 
