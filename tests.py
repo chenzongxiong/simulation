@@ -296,6 +296,7 @@ def test_agent_behaviour():
     assert agent_n.profits[-1] == 17
     LOG.debug("==============================================================")
     agent_n = agent.AgentN(STATE_WANT_TO_SELL, 5, 20)
+    agent_n.price = 0
     polling(agent_n, prices)
     assert agent_n.profits[-1] == 21
 
@@ -305,6 +306,7 @@ def test_agent_behaviour():
     assert agent_d.profits == [-4]
     LOG.debug("==============================================================")
     agent_d = agent.AgentD(STATE_WANT_TO_SELL, 4, 3)
+    agent_d.price = 0
     polling(agent_d, prices)
     assert agent_d.profits == [4, -4]
 
