@@ -4,7 +4,8 @@ import constants
 import log as logging
 import agent
 import factory
-from agent import polling
+import market
+
 
 LOG = logging.getLogger(__name__)
 
@@ -12,12 +13,15 @@ STATE_WANT_TO_BUY = constants.STATE_WANT_TO_BUY
 STATE_WANT_TO_SELL = constants.STATE_WANT_TO_SELL
 
 
-class AgentNTestCase(unittest.TestCase):
+class BaseTestCase(unittest.TestCase):
     def setUp(self):
         pass
 
     def tearDown(self):
-        pass
+        market.market = None
+
+
+class AgentNTestCase(BaseTestCase):
 
     def test_buying_signal(self):
         agent_n = agent.AgentN(STATE_WANT_TO_BUY, 3, 10)
@@ -110,12 +114,7 @@ class AgentNTestCase(unittest.TestCase):
             pass
 
 
-class AgentDTestCase(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
+class AgentDTestCase(BaseTestCase):
 
     def test_buying_signal(self):
         agent_d = agent.AgentD(STATE_WANT_TO_BUY, 4, 3)
@@ -240,12 +239,7 @@ class AgentDTestCase(unittest.TestCase):
             pass
 
 
-class AgentETestCase(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
+class AgentETestCase(BaseTestCase):
 
     def test_buying_signal(self):
         agent_e = agent.AgentE(STATE_WANT_TO_BUY)
@@ -288,12 +282,7 @@ class AgentETestCase(unittest.TestCase):
             pass
 
 
-class AgentFactoryTestCase(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
+class AgentFactoryTestCase(BaseTestCase):
 
     def test_total_stocks(self):
         agentn_factory = factory.AgentFactory(agent.AgentN, 10, state=constants.STATE_WANT_TO_SELL)
@@ -312,29 +301,51 @@ class AgentFactoryTestCase(unittest.TestCase):
         self.assertEqual(agente_factory.total_stocks(), 0)
 
 
+class MarketTestCase(BaseTestCase):
+    def setUp(self):
+        self.market = market.get_market()
+
+    def test_publish(self):
+        self.assertEqual(len(market.market._buying_agents), 0)
+        agent_e = agent.AgentE(STATE_WANT_TO_BUY)
+        agent_e.buy(1)
+
+        self.assertEqual(len(self.market._buying_agents), 1)
+        self.assertEqual(len(self.market._selling_agents), 0)
+        agent_e.sell(1)
+        self.assertEqual(len(self.market._buying_agents), 1)
+        self.assertEqual(len(self.market._selling_agents), 1)
+
+    def test_price(self):
+        pass
+
+    def test_exchange(self):
+        pass
+
+
 def test_agent_behaviour():
     prices = [8, 7, 4, 6, 5, 4, 7, 9, 5, 14, 21, 19, 20]
 
     agent_n = agent.AgentN(STATE_WANT_TO_BUY, 5, 20)
-    polling(agent_n, prices)
+    agent.polling(agent_n, prices)
     assert agent_n.profits[-1] == 17
     LOG.debug("==============================================================")
     agent_n = agent.AgentN(STATE_WANT_TO_SELL, 5, 20)
     agent_n.price = 0
-    polling(agent_n, prices)
+    agent.polling(agent_n, prices)
     assert agent_n.profits[-1] == 21
 
     LOG.debug("==============================================================")
     agent_d = agent.AgentD(STATE_WANT_TO_BUY, 4, 3)
-    polling(agent_d, prices)
+    agent.polling(agent_d, prices)
     assert agent_d.profits == [-4]
     LOG.debug("==============================================================")
     agent_d = agent.AgentD(STATE_WANT_TO_SELL, 4, 3)
     agent_d.price = 0
-    polling(agent_d, prices)
+    agent.polling(agent_d, prices)
     assert agent_d.profits == [4, -4]
 
 
 if __name__ == "__main__":
-    test_agent_behaviour()
+    # test_agent_behaviour()
     unittest.main()

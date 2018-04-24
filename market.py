@@ -55,5 +55,15 @@ class Market(object):
 
 
 class StockMarket(Market):
-
     pass
+
+
+market = None
+
+
+def get_market(name=None):
+    global market
+    if market is None:
+        market = Market()
+
+    return market

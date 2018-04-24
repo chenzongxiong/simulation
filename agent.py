@@ -1,10 +1,9 @@
 import json
 import random
-import pickle
 
 import log as logging
 import constants
-import market
+from market import get_market
 
 
 LOG = logging.getLogger(__name__)
@@ -19,7 +18,7 @@ class BaseAgent(object):
                  state,
                  name="Agent-Base",
                  price=None,
-                 market=market.Market()):
+                 market=None):
         self._state = random.choice([STATE_WANT_TO_BUY, STATE_WANT_TO_SELL]) \
             if state is None else state
         self.name = name
@@ -27,8 +26,7 @@ class BaseAgent(object):
             price is None else price
 
         self.profits = []
-        # TODO: agent should have a way to connect to market to participant in.
-        self._market = market
+        self._market = get_market() if market is None else market
 
     def buy(self, price):
         """Buy stock/bitcoin from market.
@@ -37,16 +35,16 @@ class BaseAgent(object):
         price: the price of stock/bitcoin at timestamp t
         """
         assert self.buying_signal(price), \
-            "{} cannot buy a stock/bitcoin at price {}.\n{}".format(self.name, price,
+            "{} cannot buy a stock/bitcoin at price {}. {}".format(self.name, price,
                                                                     self.__repr__())
         LOG.debug("{} buys a stock/bitconin at price {}.".format(self.name, price))
-        if self.price is None:
-            self.price = price
 
-        # Switch current state from `STATE_WANT_TO_BUY` to `STATE_WANT_TO_SELL`
-        self._state = STATE_WANT_TO_SELL
         # Emit a signal/message to a pool and wait for others who want to buy.
         self._market.publish(self, "buy", price)
+        # Update stock/bitcoin's price
+        self.price = price
+        # Switch current state from `STATE_WANT_TO_BUY` to `STATE_WANT_TO_SELL`
+        self._state = STATE_WANT_TO_SELL
 
     def sell(self, price):
         """Send stock/bitcoin to market.
@@ -64,12 +62,13 @@ class BaseAgent(object):
 
         LOG.debug("{} sells a stock/bitcoin at price {}, and gets profit {}."
                   .format(self.name, price, self.profits[-1]))
+
+        # Emit a signal/message to a pool and wait for others who want to sell
+        self._market.publish(self, "sell", price)
         # Reset `price` since we have sold it
         self.price = None
         # Switch current state from `STATE_WANT_TO_SELL` to `STATE_WANT_TO_BUY`
         self._state = STATE_WANT_TO_BUY
-        # Emit a signal/message to a pool and wait for others who want to sell
-        # self._market.publish(self, "sell", price)
 
     def buying_signal(self, price):
         raise NotImplementedError("`buying_signal` must be implemented in sub-class.")
@@ -215,7 +214,7 @@ class AgentD(BaseAgent):
 class AgentE(BaseAgent):
 
     def __init__(self,
-                 state=random.choice([STATE_WANT_TO_BUY, STATE_WANT_TO_SELL]),
+                 state=None,
                  name="Agent-E"):
         super(AgentE, self).__init__(state=state, name=name)
 
