@@ -19,7 +19,7 @@ class BaseAgent(object):
                  state,
                  name="Agent-Base",
                  price=None,
-                 market=market.StockMarket):
+                 market=market.Market()):
         self._state = random.choice([STATE_WANT_TO_BUY, STATE_WANT_TO_SELL]) \
             if state is None else state
         self.name = name
@@ -28,10 +28,12 @@ class BaseAgent(object):
 
         self.profits = []
         # TODO: agent should have a way to connect to market to participant in.
-        # self._market = market
+        self._market = market
 
     def buy(self, price):
         """Buy stock/bitcoin from market.
+        Parameters:
+        --------
         price: the price of stock/bitcoin at timestamp t
         """
         assert self.buying_signal(price), \
@@ -43,11 +45,13 @@ class BaseAgent(object):
 
         # Switch current state from `STATE_WANT_TO_BUY` to `STATE_WANT_TO_SELL`
         self._state = STATE_WANT_TO_SELL
-        # TODO: Emit a signal/message to a pool and wait for others who want to buy.
-        # self._market.get(self.name)
+        # Emit a signal/message to a pool and wait for others who want to buy.
+        self._market.publish(self, "buy", price)
 
     def sell(self, price):
         """Send stock/bitcoin to market.
+        --------
+        Parameters:
         price: the value of stock in timestamp t
         """
         assert self.selling_signal(price), \
@@ -64,8 +68,8 @@ class BaseAgent(object):
         self.price = None
         # Switch current state from `STATE_WANT_TO_SELL` to `STATE_WANT_TO_BUY`
         self._state = STATE_WANT_TO_BUY
-        # TODO: Emit a signal/message to a pool and wait for others who want to sell
-        # self._market.poll_selling(pickle.dumps([self.name, self]))
+        # Emit a signal/message to a pool and wait for others who want to sell
+        # self._market.publish(self, "sell", price)
 
     def buying_signal(self, price):
         raise NotImplementedError("`buying_signal` must be implemented in sub-class.")

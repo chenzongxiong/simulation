@@ -26,16 +26,8 @@ class AgentFactory(object):
 
 
 if __name__ == "__main__":
-    agentn_factory = AgentFactory(agent.AgentN, 10, state=constants.STATE_WANT_TO_SELL)
-    assert agentn_factory.total_stocks() == 10
-    agentn_factory = AgentFactory(agent.AgentN, 10, state=constants.STATE_WANT_TO_BUY)
-    assert agentn_factory.total_stocks() == 0
     agentn_factory = AgentFactory(agent.AgentN, 10)
     LOG.debug("Total stocks of N-type agents is: {}".format(agentn_factory.total_stocks()))
 
-    agentd_factory = AgentFactory(agent.AgentD, 10, state=constants.STATE_WANT_TO_SELL)
-    assert agentd_factory.total_stocks() == 10
-    agentd_factory = AgentFactory(agent.AgentD, 10, state=constants.STATE_WANT_TO_BUY)
-    assert agentd_factory.total_stocks() == 0
     agentd_factory = AgentFactory(agent.AgentD, 10)
     LOG.debug("Total stocks of D-type agents is: {}".format(agentd_factory.total_stocks()))

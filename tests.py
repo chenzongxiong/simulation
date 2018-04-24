@@ -3,14 +3,14 @@ import unittest
 import constants
 import log as logging
 import agent
+import factory
 from agent import polling
-
-
 
 LOG = logging.getLogger(__name__)
 
 STATE_WANT_TO_BUY = constants.STATE_WANT_TO_BUY
 STATE_WANT_TO_SELL = constants.STATE_WANT_TO_SELL
+
 
 class AgentNTestCase(unittest.TestCase):
     def setUp(self):
@@ -286,6 +286,30 @@ class AgentETestCase(unittest.TestCase):
             self.assertEqual(agent_e.state, STATE_WANT_TO_BUY)
         except AssertionError:
             pass
+
+
+class AgentFactoryTestCase(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_total_stocks(self):
+        agentn_factory = factory.AgentFactory(agent.AgentN, 10, state=constants.STATE_WANT_TO_SELL)
+        self.assertEqual(agentn_factory.total_stocks(), 10)
+        agentn_factory = factory.AgentFactory(agent.AgentN, 10, state=constants.STATE_WANT_TO_BUY)
+        self.assertEqual(agentn_factory.total_stocks(), 0)
+
+        agentd_factory = factory.AgentFactory(agent.AgentD, 10, state=constants.STATE_WANT_TO_SELL)
+        self.assertEqual(agentd_factory.total_stocks(), 10)
+        agentd_factory = factory.AgentFactory(agent.AgentD, 10, state=constants.STATE_WANT_TO_BUY)
+        self.assertEqual(agentd_factory.total_stocks(), 0)
+
+        agente_factory = factory.AgentFactory(agent.AgentE, 10, state=constants.STATE_WANT_TO_SELL)
+        self.assertEqual(agente_factory.total_stocks(), 10)
+        agente_factory = factory.AgentFactory(agent.AgentE, 10, state=constants.STATE_WANT_TO_BUY)
+        self.assertEqual(agente_factory.total_stocks(), 0)
 
 
 def test_agent_behaviour():
