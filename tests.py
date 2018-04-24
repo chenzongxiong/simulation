@@ -316,11 +316,46 @@ class MarketTestCase(BaseTestCase):
         self.assertEqual(len(self.market._buying_agents), 1)
         self.assertEqual(len(self.market._selling_agents), 1)
 
-    def test_price(self):
-        pass
+        agent_d = agent.AgentD(STATE_WANT_TO_BUY, 4, 3)
+        agent_d.tracking(3)
+        agent_d.tracking(2)
+        agent_d.tracking(5)
+        agent_d.buy(6)
+        self.assertEqual(len(self.market._buying_agents), 2)
+        self.assertEqual(len(self.market._selling_agents), 1)
 
-    def test_exchange(self):
-        pass
+        agent_d.tracking(8)
+        agent_d.tracking(9)
+        agent_d.sell(6)
+        self.assertEqual(len(self.market._buying_agents), 2)
+        self.assertEqual(len(self.market._selling_agents), 2)
+
+        agent_n = agent.AgentN(STATE_WANT_TO_BUY, 3, 10)
+        agent_n.buy(2)
+        self.assertEqual(len(self.market._buying_agents), 3)
+        self.assertEqual(len(self.market._selling_agents), 2)
+        agent_n.sell(11)
+        self.assertEqual(len(self.market._buying_agents), 3)
+        self.assertEqual(len(self.market._selling_agents), 3)
+
+    def test_exchange_and_price(self):
+        self.assertEqual(self.market.prices, [])
+        agent_1 = agent.AgentE(STATE_WANT_TO_BUY)
+        agent_1.buy(1)
+        agent_2 = agent.AgentE(STATE_WANT_TO_SELL)
+        agent_2.sell(1)
+        self.market.exchange(1)
+        self.assertEqual(self.market.prices, [1])
+
+        agent_1 = agent.AgentE(STATE_WANT_TO_BUY)
+        agent_1.buy(1)
+        agent_2 = agent.AgentE(STATE_WANT_TO_SELL)
+        agent_2.sell(1)
+        try:
+            # This transaction is invalid,
+            self.market.exchange(2)
+        except AssertionError:
+            pass
 
 
 def test_agent_behaviour():
@@ -347,5 +382,5 @@ def test_agent_behaviour():
 
 
 if __name__ == "__main__":
-    # test_agent_behaviour()
+    test_agent_behaviour()
     unittest.main()

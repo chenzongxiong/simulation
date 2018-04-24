@@ -42,16 +42,28 @@ class Market(object):
         assert len(self._buying_agents) == len(self._selling_agents)
 
         if len(self._buying_agents) > 0:
+            """NOTE: Here is roughly checking the price. In fact, during a
+            transaction, all buyer and seller should compromise on the same
+            price. Or this transaction will fail."""
+            assert pickle.loads(self._buying_agents[0])['args'][0] == \
+                pickle.loads(self._selling_agents[0])['args'][0]
+
             assert pickle.loads(self._buying_agents[0])['args'][0] == price
         else:
             LOG.debug("At price %s, no agents want to exchagne stocks." % price)
 
         LOG.info("Exchange stocks at price %s for all agents successfully." % price)
         self._prices.append(price)
+        # This transcation is successful, reset intermediate information for next transaction
+        self.reset()
 
     @property
     def prices(self):
         return self._prices
+
+    def reset(self):
+        self._buying_agents = []
+        self._selling_agents = []
 
 
 class StockMarket(Market):
