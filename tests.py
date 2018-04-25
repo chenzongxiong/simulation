@@ -18,7 +18,7 @@ class BaseTestCase(unittest.TestCase):
         pass
 
     def tearDown(self):
-        market.market = None
+        market.reset_market()
 
 
 class AgentNTestCase(BaseTestCase):
@@ -306,7 +306,7 @@ class MarketTestCase(BaseTestCase):
         self.market = market.get_market()
 
     def test_publish(self):
-        self.assertEqual(len(market.market._buying_agents), 0)
+        self.assertEqual(len(self.market._buying_agents), 0)
         agent_e = agent.AgentE(STATE_WANT_TO_BUY)
         agent_e.buy(1)
 

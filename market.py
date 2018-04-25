@@ -88,3 +88,8 @@ def get_market(name=None):
         market = Market()
 
     return market
+
+
+def reset_market():
+    global market
+    market = None
