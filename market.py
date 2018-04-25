@@ -37,18 +37,26 @@ class Market(object):
         and notifies agents as long as the transactions complete.
         --------
         Parameters:
+        price: price of stock/bitcoin in current transaction
 
-        """
-        assert len(self._buying_agents) == len(self._selling_agents)
+        Returns:
+        True means current transaction successes.
+        Otherwise, current transaction fails."""
+
+        if len(self._buying_agents) != len(self._selling_agents):
+            # TODO: Transaction failed, we need to restore the buyer and seller.
+            return False
 
         if len(self._buying_agents) > 0:
             """NOTE: Here is roughly checking the price. In fact, during a
             transaction, all buyer and seller should compromise on the same
             price. Or this transaction will fail."""
-            assert pickle.loads(self._buying_agents[0])['args'][0] == \
-                pickle.loads(self._selling_agents[0])['args'][0]
+            # assert pickle.loads(self._buying_agents[0])['args'][0] == \
+            #     pickle.loads(self._selling_agents[0])['args'][0]
 
-            assert pickle.loads(self._buying_agents[0])['args'][0] == price
+            # assert pickle.loads(self._buying_agents[0])['args'][0] == price
+            " TODO: additional checking should place here"
+            pass
         else:
             LOG.debug("At price %s, no agents want to exchagne stocks." % price)
 
@@ -56,6 +64,7 @@ class Market(object):
         self._prices.append(price)
         # This transcation is successful, reset intermediate information for next transaction
         self.reset()
+        return True
 
     @property
     def prices(self):
@@ -66,14 +75,14 @@ class Market(object):
         self._selling_agents = []
 
 
-class StockMarket(Market):
-    pass
-
-
 market = None
 
 
 def get_market(name=None):
+    """During the simulation, ensure that there is only one market.
+    This function isn't thread-safe. To set up agents cocurrently,
+    it's important to make variable `market` singleton"""
+
     global market
     if market is None:
         market = Market()

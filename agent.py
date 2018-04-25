@@ -41,6 +41,7 @@ class BaseAgent(object):
 
         # Emit a signal/message to a pool and wait for others who want to buy.
         self._market.publish(self, "buy", price)
+        # TODO: wait until all agents participant this transaction and transaction successfully.
         # Update stock/bitcoin's price
         self.price = price
         # Switch current state from `STATE_WANT_TO_BUY` to `STATE_WANT_TO_SELL`
@@ -65,6 +66,7 @@ class BaseAgent(object):
 
         # Emit a signal/message to a pool and wait for others who want to sell
         self._market.publish(self, "sell", price)
+        # TODO: wait until all agents participant this transaction and transaction successfully.
         # Reset `price` since we have sold it
         self.price = None
         # Switch current state from `STATE_WANT_TO_SELL` to `STATE_WANT_TO_BUY`
