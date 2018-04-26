@@ -37,15 +37,12 @@ class BaseAgent(object):
         assert self.buying_signal(price), \
             "{} cannot buy a stock/bitcoin at price {}. {}".format(self.name, price,
                                                                     self.__repr__())
-        LOG.debug("{} buys a stock/bitconin at price {}.".format(self.name, price))
+        LOG.debug("{} wants to buy a stock/bitcoin at price {}. {}".format(
+            self.name, price, self.__repr__()))
 
         # Emit a signal/message to a pool and wait for others who want to buy.
-        self._market.publish(self, "buy", price)
-        # TODO: wait until all agents participant this transaction and transaction successfully.
-        # Update stock/bitcoin's price
-        self.price = price
-        # Switch current state from `STATE_WANT_TO_BUY` to `STATE_WANT_TO_SELL`
-        self._state = STATE_WANT_TO_SELL
+        self._market.publish(self, "postprocess_buy", price)
+        return self
 
     def sell(self, price):
         """Send stock/bitcoin to market.
@@ -54,29 +51,37 @@ class BaseAgent(object):
         price: the value of stock in timestamp t
         """
         assert self.selling_signal(price), \
-            "{} cannot sell its stock/bitcoin.\n{}".format(self.name, self.__repr__())
+            "{} cannot sell its stock/bitcoin.{}".format(self.name, self.__repr__())
         assert self.price is not None, \
             "{} must buy a stock/bitcoin before selling."
 
-        # TODO: sell this stock
-        self.profits.append(price - self.price)
+        # Emit a signal/message to a pool and wait for others who want to sell
+        LOG.debug("{} wants to sell a stock/bitcoin at price {}. {}".format(
+            self.name, price, self.__repr__()))
 
+        self._market.publish(self, "postprocess_sell", price)
+        return self
+
+    def postprocess_buy(self, price):
+        # Update stock/bitcoin's price
+        self.price = price
+        # Switch current state from `STATE_WANT_TO_BUY` to `STATE_WANT_TO_SELL`
+        self._state = STATE_WANT_TO_SELL
+
+    def postprocess_sell(self, price):
+        self.profits.append(price - self.price)
         LOG.debug("{} sells a stock/bitcoin at price {}, and gets profit {}."
                   .format(self.name, price, self.profits[-1]))
-
-        # Emit a signal/message to a pool and wait for others who want to sell
-        self._market.publish(self, "sell", price)
-        # TODO: wait until all agents participant this transaction and transaction successfully.
         # Reset `price` since we have sold it
         self.price = None
         # Switch current state from `STATE_WANT_TO_SELL` to `STATE_WANT_TO_BUY`
         self._state = STATE_WANT_TO_BUY
 
     def buying_signal(self, price):
-        raise NotImplementedError("`buying_signal` must be implemented in sub-class.")
+        raise NotImplementedError
 
     def selling_signal(self, price):
-        raise NotImplementedError("`selling_signal` must be implemented in sub-class.")
+        raise NotImplementedError
 
     @property
     def state(self):
@@ -193,13 +198,19 @@ class AgentD(BaseAgent):
 
     def buy(self, price):
         self.tracking(price)
-        super(AgentD, self).buy(price)
+        return super(AgentD, self).buy(price)
+
+    def postprocess_buy(self, price):
+        super(AgentD, self).postprocess_buy(price)
         self._tracked_max = price
         self._tracked_min = None
 
     def sell(self, price):
         self.tracking(price)
-        super(AgentD, self).sell(price)
+        return super(AgentD, self).sell(price)
+
+    def postprocess_sell(self, price):
+        super(AgentD, self).postprocess_sell(price)
         self._tracked_min = price
         self._tracked_max = None
 
@@ -236,7 +247,7 @@ def polling(agent, prices):
                 price = prices[timestamp]
                 timestamp += 1
                 try:
-                    agent.buy(price)
+                    agent.buy(price).postprocess_buy(price)
                     LOG.info("{} buys a stock/bitcoin at price {} successfully.".format(agent.name, price))
                     break
                 except AssertionError:
@@ -248,7 +259,7 @@ def polling(agent, prices):
                 price = prices[timestamp]
                 timestamp += 1
                 try:
-                    agent.sell(price)
+                    agent.sell(price).postprocess_sell(price)
                     LOG.info("{} sells a stock/bitcoin at price {} successfully.".format(agent.name, price))
                     break
                 except AssertionError:

@@ -8,10 +8,10 @@ from market import get_market
 LOG = logging.getLogger(__name__)
 
 
-def simulation_buying():
+def simulation_buying(max_iteration=10000):
     agentn_factory = factory.AgentFactory(agent.AgentN, 20,
                                           agent_name="Agent-N")
-    agentd_factory = factory.AgentFactory(agent.AgentN, 20,
+    agentd_factory = factory.AgentFactory(agent.AgentD, 20,
                                           agent_name="Agent-D")
 
     LOG.debug("Intializing...")
@@ -22,9 +22,8 @@ def simulation_buying():
 
     market = get_market()
     price = 0
-    delta = 0.001
+    delta = 0.01
 
-    # while True:
     agente_factory = factory.AgentFactory(agent.AgentE, 5,
                                           agent_name="Agent-E")
 
@@ -37,15 +36,18 @@ def simulation_buying():
         except AssertionError:
             pass
 
-    LOG.debug("{} agents want to buy stocks".format(len(market._buying_agents)))
-    LOG.debug("{} agents want to sell stocks".format(len(market._selling_agents)))
+    LOG.debug("#{} agents want to buy stocks".format(market.number_of_buyers))
+    LOG.debug("#{} agents want to sell stocks".format(market.number_of_sellers))
+    iteration = 0
     while True:
+        price += delta
+        LOG.debug("Current Price is: {}".format(price))
         for agentn in agentn_factory:
             try:
                 if agentn.state == constants.STATE_WANT_TO_BUY:
                     agentn.buy(price)
                 elif agentn.state == constants.STATE_WANT_TO_SELL:
-                    agentn.buy(price)
+                    agentn.sell(price)
             except AssertionError:
                 pass
 
@@ -58,13 +60,18 @@ def simulation_buying():
             except AssertionError:
                 pass
 
-        LOG.debug("{} agents want to buy stocks".format(len(market._buying_agents)))
-        LOG.debug("{} agents want to sell stocks".format(len(market._selling_agents)))
+        LOG.debug("#{} agents want to buy stocks".format(market.number_of_buyers))
+        LOG.debug("#{} agents want to sell stocks".format(market.number_of_sellers))
 
         if market.exchange(price):
+            LOG.info("Iteration #{}, reaching stability, next price is {}".format(iteration,
+                                                                                  price))
+            break
+        iteration += 1
+        if iteration >= max_iteration:
+            LOG.error("Max iteration {} reaches, fail to find a solution for this transaction.".format(max_iteration))
             break
 
-        price += delta
 
 if __name__ == "__main__":
     simulation_buying()

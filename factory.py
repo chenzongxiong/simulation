@@ -18,7 +18,7 @@ class AgentFactory(object):
         kwargs.pop("name", None)
         self.agents = []
         for i in range(number):
-            self.agents.append(klass(name=uuid.uuid4().hex+"-"+agent_name,
+            self.agents.append(klass(name=agent_name+"-"+uuid.uuid4().hex,
                                      **kwargs))
         self.name = agent_name
         self.number = number
