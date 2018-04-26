@@ -8,7 +8,13 @@ from market import get_market
 LOG = logging.getLogger(__name__)
 
 
-def simulation_buying(max_iteration=10000):
+def simulation(action,
+               price=0,
+               delta=0.01,
+               max_iteration=10000):
+
+    assert action in ("buy", "sell")
+
     agentn_factory = factory.AgentFactory(agent.AgentN, 20,
                                           agent_name="Agent-N")
     agentd_factory = factory.AgentFactory(agent.AgentD, 20,
@@ -21,8 +27,8 @@ def simulation_buying(max_iteration=10000):
     LOG.debug("--------------------------------------------")
 
     market = get_market()
-    price = 0
-    delta = 0.01
+    price = price
+    delta = delta if action == "buy" else -delta
 
     agente_factory = factory.AgentFactory(agent.AgentE, 5,
                                           agent_name="Agent-E")
@@ -30,9 +36,12 @@ def simulation_buying(max_iteration=10000):
     LOG.debug("Factory {} has {} stocks".format(agente_factory.name, agente_factory.total_stocks()))
     LOG.debug("{} agents of factory {} want to buy stocks".format(agente_factory.name,
                                                                   len(agente_factory.agents) - agente_factory.total_stocks()))
+    LOG.debug("{} agents of factory {} want to sell stocks".format(agente_factory.name,
+                                                                   agente_factory.total_stocks()))
+
     for agente in agente_factory:
         try:
-            agente.buy(price)
+            getattr(agente, action)(price)
         except AssertionError:
             pass
 
@@ -41,6 +50,10 @@ def simulation_buying(max_iteration=10000):
     iteration = 0
     while True:
         price += delta
+        if price < 0:
+            LOG.debug("Price is negative, *INVALID*!!!")
+            break
+
         LOG.debug("Current Price is: {}".format(price))
         for agentn in agentn_factory:
             try:
@@ -69,9 +82,20 @@ def simulation_buying(max_iteration=10000):
             break
         iteration += 1
         if iteration >= max_iteration:
-            LOG.error("Max iteration {} reaches, fail to find a solution for this transaction.".format(max_iteration))
+            LOG.error("Max iteration #{} reaches, fail to find a solution for this transaction.".format(max_iteration))
             break
 
-
 if __name__ == "__main__":
-    simulation_buying()
+    LOG.info("****************************************")
+    LOG.info("*********Start to simulate BUY**********")
+    LOG.info("****************************************")
+    simulation("buy", 0,
+               delta=0.01,
+               max_iteration=10000)
+
+    LOG.info("****************************************")
+    LOG.info("*********Start to simulate SELL*********")
+    LOG.info("****************************************")
+    simulation("sell", 1,
+               delta=0.0001,
+               max_iteration=10000)
