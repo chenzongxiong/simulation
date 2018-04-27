@@ -13,6 +13,10 @@ STATE_WANT_TO_SELL = constants.STATE_WANT_TO_SELL
 
 
 class BaseAgent(object):
+    """An agent is a role participanting in the market. Different agents will
+    take different strategies to react to the fluctuation of the price.
+    `buying_signal` and `selling_signal` must be implemented by derived classes
+    since different criteria catering for different agents."""
 
     def __init__(self,
                  state,
@@ -98,6 +102,15 @@ class BaseAgent(object):
 
 
 class AgentN(BaseAgent):
+    """The strategy of each of the agents N is characterized by a non-ideal realy with
+    two fixed thresholds p1 < p2(different for different agents). The relay is in state
+    `STATE_WANT_TO_SELL` if the price is higher than p2 and in state `STATE_WANT_TO_BUY`
+    if the price is lower than p1. The agent buys one stock whenever his relay switches
+    from `STATE_WANT_TO_BUY` to `STATE_WANT_TO_SELL` and sells one stock whenever his
+    relay switches from `STATE_WANT_TO_SELL` to `STATE_WANT_TO_BUY`. The total amount of
+    stocks that are in possession of all the agents N can be described as a Preisach
+    operator whose input is the price. We denote this operator by P_N(p). Call function
+    ~factory.AgentFactory.total_assets~ to obtain P_N(p)."""
 
     def __init__(self,
                  state=None,
@@ -147,6 +160,11 @@ class AgentN(BaseAgent):
 
 
 class AgentD(BaseAgent):
+    """Agents D keep track of a trend. They buy stocks iff the price goes up
+    and and sell stocks iff the price goes down. The total amount of stocks
+    that are in possession of all the agents D can be described as a Prandtl-
+    Ishlinskii operator whose input is the price p. We denote this operator by
+    P_D(p). Call function ~factory.AgentFactory.total_assets~ to obtain P_D(p)"""
 
     def __init__(self,
                  state=None,
@@ -225,6 +243,9 @@ class AgentD(BaseAgent):
 
 
 class AgentE(BaseAgent):
+    """Some agents E buy or sell some stocks between time moments n-1 and n. Moreover,
+    we assume that external agents do not stay at the stock exchanges, i.e., the operators
+    (their densities) P_D(p) and P_N(p) don't change in time."""
 
     def __init__(self,
                  state=None,
@@ -264,7 +285,3 @@ def polling(agent, prices):
                     break
                 except AssertionError:
                     LOG.info("{} could not sell a stock/bitcoin at price {}. {}".format(agent.name, price, agent.__repr__()))
-
-
-if __name__ == "__main__":
-    pass

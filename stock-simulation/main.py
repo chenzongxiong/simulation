@@ -16,8 +16,8 @@ class Simulation(object):
 
     def __init__(self,
                  number_of_transactions=10,
-                 number_of_agentn=5,
-                 number_of_agentd=5,
+                 number_of_agentn=100,
+                 number_of_agentd=100,
                  number_of_agente=3):
         # seed = 1: counldnot produce sound result`
         reset_market()
@@ -32,14 +32,14 @@ class Simulation(object):
         self.market = get_market()
         LOG.info("****************************************")
         LOG.info("Intializing...")
-        LOG.debug("Factory {} has {} stocks".format(self.agentn_factory.name, self.agentn_factory.total_stocks()))
-        LOG.debug("Factory {} has {} stocks".format(self.agentd_factory.name, self.agentd_factory.total_stocks()))
+        LOG.debug("Factory {} has {} stocks".format(self.agentn_factory.name, self.agentn_factory.total_assets))
+        LOG.debug("Factory {} has {} stocks".format(self.agentd_factory.name, self.agentd_factory.total_assets))
         for agentd in self.agentd_factory:
             LOG.info(agentd)
         for agentn in self.agentn_factory:
             LOG.info(agentn)
         LOG.info("Total stocks in the market is: {}, maximum stocks allowed in market is: {}.".format(
-            self.agentn_factory.total_stocks() + self.agentd_factory.total_stocks(),
+            self.agentn_factory.total_assets + self.agentd_factory.total_assets,
             self._number_of_agentn+self._number_of_agentd))
 
         LOG.info("****************************************")
@@ -47,45 +47,45 @@ class Simulation(object):
     def _simulate(self, action, price, delta=0.01, max_iteration=10000):
         assert action in ("buy", "sell")
 
-        if action == "buy" and (self.agentn_factory.total_stocks() + self.agentd_factory.total_stocks() == 0):
+        if action == "buy" and (self.agentn_factory.total_assets + self.agentd_factory.total_assets == 0):
             LOG.info("No more stocks can be bought from market.")
             sys.exit(1)
         if action == "sell" and \
-           (self.agentn_factory.total_stocks() + self.agentd_factory.total_stocks() ==
+           (self.agentn_factory.total_assets + self.agentd_factory.total_assets ==
             self._number_of_agentn+self._number_of_agentd):
             LOG.info("No more stocks can be sold to market.")
             sys.exit(1)
 
-        LOG.debug("Factory {} has {} stocks".format(self.agentn_factory.name, self.agentn_factory.total_stocks()))
-        LOG.debug("Factory {} has {} stocks".format(self.agentd_factory.name, self.agentd_factory.total_stocks()))
-        LOG.info("Total stocks in the market is: {}".format(self.agentn_factory.total_stocks() + self.agentd_factory.total_stocks()))
+        LOG.debug("Factory {} has {} stocks".format(self.agentn_factory.name, self.agentn_factory.total_assets))
+        LOG.debug("Factory {} has {} stocks".format(self.agentd_factory.name, self.agentd_factory.total_assets))
+        LOG.info("Total stocks in the market is: {}".format(self.agentn_factory.total_assets + self.agentd_factory.total_assets)
 
         price = price
         delta = delta if action == "buy" else -delta
         agente_factory = factory.AgentFactory(agent.AgentE, self._number_of_agente,
                                               agent_name="Agent-E")
-        LOG.debug("Factory {} has {} stocks".format(agente_factory.name, agente_factory.total_stocks()))
+        LOG.debug("Factory {} has {} stocks".format(agente_factory.name, agente_factory.total_assets)
         # LOG.info("{} agents of factory {} want to buy stocks".format(agente_factory.name,
-        #                                                              len(agente_factory.agents) - agente_factory.total_stocks()))
+        #                                                              len(agente_factory.agents) - agente_factory.total_assets)
         # LOG.info("{} agents of factory {} want to sell stocks".format(agente_factory.name,
-        #                                                               agente_factory.total_stocks()))
+        #                                                               agente_factory.total_assets)
 
         # if action == "buy" and \
-        #    (self.agentn_factory.total_stocks() < len(agente_factory.agents) - agente_factory.total_stocks()):
+        #    (self.agentn_factory.total_assets < len(agente_factory.agents) - agente_factory.total_assets:
         #     LOG.warn("This transaction must be failed.")
         #     return
         while True:
             LOG.info("{} agents of factory {} want to buy stocks".format(agente_factory.name,
-                                                                         len(agente_factory.agents) - agente_factory.total_stocks()))
+                                                                         len(agente_factory.agents) - agente_factory.total_assets()))
             LOG.info("{} agents of factory {} want to sell stocks".format(agente_factory.name,
-                                                                          agente_factory.total_stocks()))
+                                                                          agente_factory.total_assets)
             if action == "buy" and \
-               agente_factory.total_stocks() == len(agente_factory.agents):
+               agente_factory.total_assets() == len(agente_factory.agents):
                 agente_factory = factory.AgentFactory(agent.AgentE, self._number_of_agente,
                                                       agent_name="Agent-E")
 
             elif action == "sell" and \
-                 agente_factory.total_stocks() == 0:
+                 agente_factory.total_assets() == 0:
                 agente_factory = factory.AgentFactory(agent.AgentE, self._number_of_agente,
                                                       agent_name="Agent-E")
             else:
@@ -155,6 +155,11 @@ class Simulation(object):
             if iteration % 1000 == 0:
                 LOG.info("Iteration #{} --> price: {}.".format(iteration, price))
 
+    def _simulate1(self, action, price, delta=0.01, max_iteration=10000):
+        # agente = random.normal()
+        #
+        pass
+
     def simulate(self, action=None, delta=0.00001, max_iteration=1000000):
         start = time.time()
         LOG.info("Start to simulate...")
@@ -181,15 +186,22 @@ class Simulation(object):
         LOG.info("****************DONE********************")
         LOG.info("****************************************")
 
+    def _check_stable_price(self, t1, t2):
+        return True if t1 * t2 <= 0 else False
+
 
 if __name__ == "__main__":
-    number_of_transactions = 1
+    number_of_transactions = 5
     LOG.debug("****************************************")
     LOG.debug("**Start to simlualte *buy* #{} transaction".format(number_of_transactions))
     LOG.debug("****************************************")
     random.seed(123)
-    sim = Simulation(number_of_transactions)
-    sim.simulate("buy", 0.001, 10000)
+    sim = Simulation(number_of_transactions,
+                     number_of_agentn=100,
+                     number_of_agentd=100,
+                     number_of_agente=3)
+    # sim.simulate("buy", 0.001, 10000)
+    sim.simulate("buy", 0.0001, 1000000)
     LOG.info("After #{} simulations, we got {}".format(number_of_transactions,
                                                        sim.market.prices))
 

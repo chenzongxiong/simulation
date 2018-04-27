@@ -23,7 +23,8 @@ class AgentFactory(object):
         self.name = agent_name
         self.number = number
 
-    def total_stocks(self):
+    @property
+    def total_assets(self):
         return sum([_agent.state == constants.STATE_WANT_TO_SELL for _agent in self.agents])
 
     def __iter__(self):
@@ -44,6 +45,6 @@ class AgentFactory(object):
 
 if __name__ == "__main__":
     agentn_factory = AgentFactory(agent.AgentN, 10)
-    LOG.debug("Total stocks of N-type agents is: {}".format(agentn_factory.total_stocks()))
+    LOG.debug("Total stocks of N-type agents is: {}".format(agentn_factory.total_assets))
     agentd_factory = AgentFactory(agent.AgentD, 10)
-    LOG.debug("Total stocks of D-type agents is: {}".format(agentd_factory.total_stocks()))
+    LOG.debug("Total stocks of D-type agents is: {}".format(agentd_factory.total_assets))

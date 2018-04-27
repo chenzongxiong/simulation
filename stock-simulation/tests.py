@@ -305,19 +305,19 @@ class AgentFactoryTestCase(BaseTestCase):
 
     def test_total_stocks(self):
         agentn_factory = factory.AgentFactory(agent.AgentN, 10, state=constants.STATE_WANT_TO_SELL)
-        self.assertEqual(agentn_factory.total_stocks(), 10)
+        self.assertEqual(agentn_factory.total_assets, 10)
         agentn_factory = factory.AgentFactory(agent.AgentN, 10, state=constants.STATE_WANT_TO_BUY)
-        self.assertEqual(agentn_factory.total_stocks(), 0)
+        self.assertEqual(agentn_factory.total_assets, 0)
 
         agentd_factory = factory.AgentFactory(agent.AgentD, 10, state=constants.STATE_WANT_TO_SELL)
-        self.assertEqual(agentd_factory.total_stocks(), 10)
+        self.assertEqual(agentd_factory.total_assets, 10)
         agentd_factory = factory.AgentFactory(agent.AgentD, 10, state=constants.STATE_WANT_TO_BUY)
-        self.assertEqual(agentd_factory.total_stocks(), 0)
+        self.assertEqual(agentd_factory.total_assets, 0)
 
         agente_factory = factory.AgentFactory(agent.AgentE, 10, state=constants.STATE_WANT_TO_SELL)
-        self.assertEqual(agente_factory.total_stocks(), 10)
+        self.assertEqual(agente_factory.total_assets, 10)
         agente_factory = factory.AgentFactory(agent.AgentE, 10, state=constants.STATE_WANT_TO_BUY)
-        self.assertEqual(agente_factory.total_stocks(), 0)
+        self.assertEqual(agente_factory.total_assets, 0)
 
 
 class MarketTestCase(BaseTestCase):
