@@ -37,6 +37,11 @@ class AgentFactory(object):
     def next(self):
         return self.__next__()
 
+    def dumps(self):
+        for _agent in self.agents:
+            LOG.info(_agent.__repr__())
+
+
 if __name__ == "__main__":
     agentn_factory = AgentFactory(agent.AgentN, 10)
     LOG.debug("Total stocks of N-type agents is: {}".format(agentn_factory.total_stocks()))

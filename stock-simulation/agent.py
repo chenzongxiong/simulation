@@ -1,6 +1,6 @@
 import json
 import random
-
+import collections
 import log as logging
 import constants
 from market import get_market
@@ -93,7 +93,7 @@ class BaseAgent(object):
 
     def __repr__(self):
         return json.dumps({"name": self.name,
-                           "state": self._state,
+                           "state": "WANT_TO_BUY" if self._state == STATE_WANT_TO_BUY else "WANT_TO_SELL",
                            "price": self.price})
 
 
@@ -140,7 +140,7 @@ class AgentN(BaseAgent):
 
     def __repr__(self):
         return json.dumps({"name": self.name,
-                           "state": self._state,
+                           "state": "WANT_TO_BUY" if self._state == STATE_WANT_TO_BUY else "WANT_TO_SELL",
                            "price": self.price,
                            "lower_bound": self._lower_bound,
                            "upper_bound": self._upper_bound})
@@ -216,7 +216,7 @@ class AgentD(BaseAgent):
 
     def __repr__(self):
         return json.dumps({"name": self.name,
-                           "state": self._state,
+                           "state": "WANT_TO_BUY" if self._state == STATE_WANT_TO_BUY else "WANT_TO_SELL",
                            "price": self.price,
                            "tracked_min": self._tracked_min,
                            "tracked_max": self._tracked_max,
