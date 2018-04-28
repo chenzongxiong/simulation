@@ -42,6 +42,9 @@ class AgentFactory(object):
         for _agent in self.agents:
             LOG.info(_agent.__repr__())
 
+    @property
+    def length(self):
+        return len(self.agents)
 
 if __name__ == "__main__":
     agentn_factory = AgentFactory(agent.AgentN, 10)
