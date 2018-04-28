@@ -1,6 +1,8 @@
 import sys
+import argparse
 import time
 import random
+from matplotlib import pyplot as plt
 
 import log as logging
 import agent
@@ -28,6 +30,7 @@ class Simulation(object):
         self._number_of_transactions = number_of_transactions
         self._number_of_agentN = number_of_agentN
         self._number_of_agentD = number_of_agentD
+        self._mu = mu
         self._sigma = sigma
         self.market = get_market()
         LOG.info("****************************************")
@@ -113,18 +116,23 @@ class Simulation(object):
         _action = self._action(noise)
         price = 0 if _action == "buy" else 1
         self.market.prices.append(price)
-        for i in range(self._number_of_transactions):
+        i = 0
+        while i < self._number_of_transactions:
             _price = price
             _noise = noise
             _action = self._action(_noise)
             LOG.info("Round #{} ACTION: {}, PRICE: {}, DELTA: {}".format(
                 i, _action, _price, delta))
             price = self._simulate(_noise, _price, delta, max_iteration)
-            # TODO: check #buyers and #sellers to decide which action should
-            # take place.
-            if price is None:
-                break
+
             noise = self._generate_noise()
+            if price is None:
+                # Flip action
+                while self._action(noise) == _action:
+                    noise = self._generate_noise()
+                price = self.market.prices[-1]
+            else:
+                i += 1
 
         end = time.time()
         LOG.info("Time elapses: {}".format(end-start))
@@ -137,11 +145,19 @@ class Simulation(object):
     def _generate_noise(self):
         """Generate external agents from gaussian distribution. This function ensures
         the number of external agnets must be integral and non-zero"""
+        if not getattr(self, "_generator", None):
+            self.noise_generator(random.normalvariate, self._mu, self._sigma)
 
         _noise = 0
+
         while _noise == 0:
-            _noise = round(random.normalvariate(0, self._sigma))
+            _noise = round(self._generator(*self._generator_args, **self._generator_kwargs))
         return int(_noise)
+
+    def noise_generator(self, generator, *args, **kwargs):
+        self._generator = generator
+        self._generator_args = args
+        self._generator_kwargs = kwargs
 
     def _action(self, noise):
         """Return the action of external agents take. If noise is less than 0,
@@ -217,16 +233,52 @@ class Simulation(object):
 
         return diff, price
 
+    def plot(self):
+        timestamp = range(len(self.market.prices))
+        plt.plot(timestamp, self.market.prices)
+        plt.show()
+
 
 if __name__ == "__main__":
-    number_of_transactions = 100
-    LOG.debug("****************************************")
-    LOG.debug("**Start to simlualte #{} transaction".format(number_of_transactions))
-    LOG.debug("****************************************")
-    random.seed(1)
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--number-of-transactions", dest="number_of_transactions",
+                        required=False, type=int,
+                        default = 100)
+    parser.add_argument("--number-of-agentN", dest="number_of_agentN",
+                        required=False, type=int,
+                        default = 100)
+    parser.add_argument("--number-of-agentD", dest="number_of_agentD",
+                        required=False, type=int,
+                        default=25)
+    parser.add_argument("--mu", dest="mu",
+                        required=False, type=float,
+                        default=0)
+    parser.add_argument("--sigma", dest="sigma",
+                        required=False, type=float,
+                        default=2)
+
+    argv = parser.parse_args(sys.argv[1:])
+
+    number_of_transactions = argv.number_of_transactions
+    number_of_agentN = argv.number_of_agentN
+    number_of_agentD = argv.number_of_agentD
+    mu = argv.mu
+    sigma = argv.sigma
+
+    LOG.info("****************************************")
+    LOG.info("Start to simlualte #{} transaction".format(number_of_transactions))
+    LOG.info("Number of Agent N: {}".format(number_of_agentN))
+    LOG.info("Number of Agent D: {}".format(number_of_agentD))
+    LOG.info("Mean of gaussian distribution: {}".format(mu))
+    LOG.info("Standard deriviation of gaussian distribution: {}".format(sigma))
+    LOG.info("****************************************")
     sim = Simulation(number_of_transactions,
-                     number_of_agentN=100,
-                     number_of_agentD=25)
-    sim.simulate(0.001, 100000)
+                     number_of_agentN=number_of_agentN,
+                     number_of_agentD=number_of_agentD,
+                     mu=mu,
+                     sigma=sigma)
+    sim.simulate(0.001, 30000)
     LOG.info("After #{} simulations, we got {}".format(number_of_transactions,
                                                        sim.market.prices))
+    sim.plot()
