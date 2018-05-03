@@ -2,6 +2,7 @@ import sys
 import argparse
 import time
 import random
+import signal
 from matplotlib import pyplot as plt
 
 import log as logging
@@ -32,6 +33,7 @@ class Simulation(object):
         self._number_of_agentD = number_of_agentD
         self._mu = mu
         self._sigma = sigma
+        self._Kn_list = []
         self.market = get_market()
         LOG.info("****************************************")
         LOG.info("Intializing...")
@@ -74,7 +76,7 @@ class Simulation(object):
         delta = self._direction(action) * delta
         iteration = 0
         curr_diff, price = self._jump_to_next_unstable_price(price, action)
-
+        _Kn = []
         while True:
             iteration += 1
             if iteration >= max_iteration:
@@ -93,6 +95,8 @@ class Simulation(object):
             prev_diff = curr_diff
             curr_diff = self._ballot(price)
 
+            _Kn.append(self.agentNs.total_assets + self.agentDs.total_assets + curr_diff)
+
             if self.market.exchange(price) or \
                self._check_stable_price(prev_diff, curr_diff):
                 LOG.debug("Exchange stocks/bitcoins successfully.")
@@ -105,6 +109,8 @@ class Simulation(object):
         LOG.debug("Factory {} has {} stocks".format(self.agentDs.name,
                                                     self.agentDs.total_assets))
         LOG.info("Total assets in market is {}".format(self._total_assets))
+
+        self._Kn_list.append((_Kn, action))
         return price
 
     def simulate(self, delta=0.001, max_iteration=50000):
@@ -233,13 +239,48 @@ class Simulation(object):
 
         return diff, price
 
-    def plot(self):
+    def plot_price(self):
         timestamp = range(len(self.market.prices))
         plt.plot(timestamp, self.market.prices)
+        plt.xlabel("timestamp")
+        plt.ylabel("price")
+
+    def _plot_kn(self, _Kn, action):
+        x = range(len(_Kn))
+        color = "green" if action == "buy" else "red"
+        plt.plot(x, _Kn, color=color, label=action)
+        plt.legend()
+        plt.show()
+
+    def plot_Kn(self):
+        start = 0
+        for _Kn, action in self._Kn_list:
+            x = range(start, start+len(_Kn), 1)
+            color = "green" if action == "buy" else "red"
+            plt.plot(x, _Kn, color=color)
+            start = len(_Kn) + start - 1
+
+        plt.xlabel("timestamp")
+        plt.ylabel("Kn")
+    def plot(self):
+        plt.subplot(2, 1, 1)
+        self.plot_Kn()
+        plt.subplot(2, 1, 2)
+        self.plot_price()
+
+    def show_plot(self):
         plt.show()
 
 
+def handler(signum, frame):
+    LOG.info("Catch signal")
+    sys.exit(0)
+
+
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGSEGV, handler)
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--number-of-transactions", dest="number_of_transactions",
@@ -282,3 +323,4 @@ if __name__ == "__main__":
     LOG.info("After #{} simulations, we got {}".format(number_of_transactions,
                                                        sim.market.prices))
     sim.plot()
+    sim.show_plot()
