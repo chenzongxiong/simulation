@@ -14,6 +14,8 @@ from market import get_market, reset_market
 
 LOG = logging.getLogger(__name__)
 
+sim = None
+
 
 class Simulation(object):
 
@@ -262,6 +264,7 @@ class Simulation(object):
 
         plt.xlabel("timestamp")
         plt.ylabel("Kn")
+
     def plot(self):
         plt.subplot(2, 1, 1)
         self.plot_Kn()
@@ -274,6 +277,11 @@ class Simulation(object):
 
 def handler(signum, frame):
     LOG.info("Catch signal")
+    global sim
+    if sim is not None:
+        sim.plot()
+        sim.show_plot()
+
     sys.exit(0)
 
 
@@ -285,10 +293,10 @@ if __name__ == "__main__":
 
     parser.add_argument("--number-of-transactions", dest="number_of_transactions",
                         required=False, type=int,
-                        default = 100)
+                        default=100)
     parser.add_argument("--number-of-agentN", dest="number_of_agentN",
                         required=False, type=int,
-                        default = 100)
+                        default=100)
     parser.add_argument("--number-of-agentD", dest="number_of_agentD",
                         required=False, type=int,
                         default=25)
@@ -314,6 +322,7 @@ if __name__ == "__main__":
     LOG.info("Mean of gaussian distribution: {}".format(mu))
     LOG.info("Standard deriviation of gaussian distribution: {}".format(sigma))
     LOG.info("****************************************")
+    global sim
     sim = Simulation(number_of_transactions,
                      number_of_agentN=number_of_agentN,
                      number_of_agentD=number_of_agentD,
