@@ -1,0 +1,13 @@
+* A Simple Simulation of Stock/Bitcoin Market.
+
+* N Agents
+  - Fix \(\delta_{i}\), find \(L_{i} = L(\delta_{i})\) \\
+    \(L(\delta) = C * \Gamma(\frac{\delta}{C_0}; k=7.5, \theta=1)\), where \(C=10\)
+  - sample \(\alpha\) from \(\Gamma(2, 2)\)
+  - sample \(\alpha_0\) from \(\text{Uniform}(-\alpha, +\alpha)\)
+  - find n from equation \(n \frac{\alpha+\alpha n}{2} = \delta\)
+  - create \(2n\) non-overlapping relays \((\alpha_0 - n \alpha, \alpha_0 - (n-1) \alpha)\) ...
+  - Initialize relays:
+    + if \(\alpha_L \ge 0\), relay = 1
+    + if \(\alpha_L < 0\), relay = 0
+* D Agents

@@ -1,6 +1,5 @@
 import json
 import random
-import collections
 import log as logging
 import constants
 from market import get_market
@@ -40,7 +39,7 @@ class BaseAgent(object):
         """
         assert self.buying_signal(price), \
             "{} cannot buy a stock/bitcoin at price {}. {}".format(self.name, price,
-                                                                    self.__repr__())
+                                                                   self.__repr__())
         LOG.debug("{} wants to buy a stock/bitcoin at price {}. {}".format(
             self.name, price, self.__repr__()))
 
@@ -158,6 +157,22 @@ class AgentN(BaseAgent):
                            "lower_bound": self._lower_bound,
                            "upper_bound": self._upper_bound})
 
+    @property
+    def lower_bound(self):
+        return self._lower_bound
+
+    @lower_bound.setter
+    def lower_bound(self, x):
+        self._lower_bound = x
+
+    @property
+    def upper_bound(self):
+        return self._upper_bound
+
+    @upper_bound.setter
+    def upper_bound(self, x):
+        self._upper_bound = x
+
 
 class AgentD(BaseAgent):
     """Agents D keep track of a trend. They buy stocks iff the price goes up
@@ -232,6 +247,22 @@ class AgentD(BaseAgent):
         self._tracked_min = price
         self._tracked_max = None
 
+    @property
+    def tracked_min(self):
+        return self._tracked_min
+
+    @tracked_min.setter
+    def tracked_min(self, x):
+        self._tracked_min = x
+
+    @property
+    def tracked_max(self):
+        return self._tracked_max
+
+    @tracked_max.setter
+    def tracked_max(self, x):
+        self._tracked_max = x
+
     def __repr__(self):
         return json.dumps({"name": self.name,
                            "state": "WANT_TO_BUY" if self._state == STATE_WANT_TO_BUY else "WANT_TO_SELL",
@@ -257,6 +288,8 @@ class AgentE(BaseAgent):
 
     def selling_signal(self, price=None):
         return self._state == STATE_WANT_TO_SELL
+
+
 
 
 def polling(agent, prices):
