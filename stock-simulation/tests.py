@@ -305,19 +305,19 @@ class AgentFactoryTestCase(BaseTestCase):
 
     def test_total_stocks(self):
         agentn_factory = factory.AgentFactory(agent.AgentN, 10, state=constants.STATE_WANT_TO_SELL)
-        self.assertEqual(agentn_factory.total_assets, 10)
+        self.assertEqual(agentn_factory.total_stocks, 10)
         agentn_factory = factory.AgentFactory(agent.AgentN, 10, state=constants.STATE_WANT_TO_BUY)
-        self.assertEqual(agentn_factory.total_assets, 0)
+        self.assertEqual(agentn_factory.total_stocks, 0)
 
         agentd_factory = factory.AgentFactory(agent.AgentD, 10, state=constants.STATE_WANT_TO_SELL)
-        self.assertEqual(agentd_factory.total_assets, 10)
+        self.assertEqual(agentd_factory.total_stocks, 10)
         agentd_factory = factory.AgentFactory(agent.AgentD, 10, state=constants.STATE_WANT_TO_BUY)
-        self.assertEqual(agentd_factory.total_assets, 0)
+        self.assertEqual(agentd_factory.total_stocks, 0)
 
         agente_factory = factory.AgentFactory(agent.AgentE, 10, state=constants.STATE_WANT_TO_SELL)
-        self.assertEqual(agente_factory.total_assets, 10)
+        self.assertEqual(agente_factory.total_stocks, 10)
         agente_factory = factory.AgentFactory(agent.AgentE, 10, state=constants.STATE_WANT_TO_BUY)
-        self.assertEqual(agente_factory.total_assets, 0)
+        self.assertEqual(agente_factory.total_stocks, 0)
 
 
 class MarketTestCase(BaseTestCase):
@@ -368,20 +368,31 @@ class MarketTestCase(BaseTestCase):
         agent_2 = agent.AgentE(STATE_WANT_TO_SELL,
                                name="AgentE-"+uuid.uuid4().hex)
         agent_2.sell(1)
+
+        self.assertTrue(self.market.exchangable())
+        self.assertEqual(self.market.number_of_buyers, 1)
+        self.assertEqual(self.market.number_of_sellers, 1)
         self.market.exchange(1)
         self.assertEqual(self.market.prices, [1])
+        self.assertEqual(self.market.number_of_buyers, 0)
+        self.assertEqual(self.market.number_of_sellers, 0)
 
         agent_1 = agent.AgentE(STATE_WANT_TO_BUY,
                                name="AgentE-"+uuid.uuid4().hex)
         agent_1.buy(1)
+        agent_1.sell(1)
         agent_2 = agent.AgentE(STATE_WANT_TO_SELL,
                                name="AgentE-"+uuid.uuid4().hex)
         agent_2.sell(1)
-        try:
-            # This transaction is invalid,
-            self.market.exchange(2)
-        except AssertionError:
-            pass
+        agent_3 = agent.AgentE(STATE_WANT_TO_SELL,
+                               name="AgentE-"+uuid.uuid4().hex)
+        agent_3.sell(2)
+
+        self.assertFalse(self.market.exchangable())
+
+
+class SimulationTestCase(BaseTestCase):
+    pass
 
 
 def test_agent_behaviour():
@@ -407,6 +418,16 @@ def test_agent_behaviour():
     assert agent_d.profits == [4, -4]
 
 
+def loop(count=10000):
+    import time
+    start = time.time()
+    x = 0
+    for i in range(count):
+        x += i
+
+    end = time.time()
+    return end - start
+
 if __name__ == "__main__":
-    test_agent_behaviour()
+    # test_agent_behaviour()
     unittest.main()

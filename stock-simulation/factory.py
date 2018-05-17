@@ -29,11 +29,8 @@ class ItertorMixin(object):
 
     def dumps(self):
         for _agent in self.agents:
-            LOG.info(_agent.__repr__())
+            LOG.debug(_agent.__repr__())
 
-    @property
-    def length(self):
-        return len(self.agents)
 
 class IndexMixin(object):
     def __getitem__(self, key):
@@ -41,6 +38,11 @@ class IndexMixin(object):
 
     def __len__(self):
         return len(self.agents)
+
+    @property
+    def length(self):
+        return len(self.agents)
+
 
 class AgentFactory(ItertorMixin, IndexMixin):
 
@@ -68,10 +70,6 @@ class AgentFactory(ItertorMixin, IndexMixin):
     def total_stocks(self):
         return sum([_agent.state == constants.STATE_WANT_TO_SELL for _agent in self.agents])
 
-    def dumps(self):
-        for _agent in self.agents:
-            LOG.info(_agent.__repr__())
-
     def _arrange_agents(self):
         self._agent_arranged = True
 
@@ -94,22 +92,22 @@ class AgentFactory(ItertorMixin, IndexMixin):
                 i = _agent.upper_bound
         return True
 
-    def _check_tracked_min_ascending(self):
-        i = self.agents[0].tracked_min
+    def _check_buying_threshold_ascending(self):
+        i = self.agents[0].buying_threshold
         for _agent in self.agents:
-            if i > _agent.tracked_min:
+            if i > _agent.buying_threshold:
                 return False
             else:
-                i = _agent.tracked_min
+                i = _agent.buying_threshold
         return True
 
-    def _check_tracked_max_ascending(self):
-        i = self.agents[0].tracked_max
+    def _check_selling_threshold_ascending(self):
+        i = self.agents[0].selling_threshold
         for _agent in self.agents:
-            if i > _agent.tracked_max:
+            if i > _agent.selling_threshold:
                 return False
             else:
-                i = _agent.tracked_max
+                i = _agent.selling_threshold
         return True
 
 
@@ -134,7 +132,6 @@ class RealAgentN(AgentFactory):
         assert number_of_layer > 0 and isinstance(number_of_layer, int), \
           "number_of_layer must be positive integer"
         super(RealAgentN, self).__init__(agent.AgentN, 2*number_of_layer)
-        self._balance = delta
         self._number_of_layer = number_of_layer
 
         for nn in range(0, 2*number_of_layer):
@@ -156,16 +153,19 @@ class RealAgentN(AgentFactory):
 
         assert self._check_lower_bound_ascending()
         assert self._check_upper_bound_ascending()
+        self._balance = delta
 
 
 class RealAgentD(AgentFactory):
     def __init__(self, beta, number, state):
         assert number > 0 and isinstance(number, int), "The number of agents must be positive integer."
-        super(RealAgentD, self).__init__(agent.AgentD, 2*number)
-        for nn in range(0, 2*number, 2):
-            self.agents[nn].tracked_min = beta
-            self.agents[nn].tracked_max = beta
+        super(RealAgentD, self).__init__(agent.AgentD, number)
+        for nn in range(0, number):
+            self.agents[nn].buying_threshold = beta
+            self.agents[nn].selling_threshold = beta
             self.agents[nn].state = state
+
+        self._balance = beta
 
 
 class RealAgentNFactory(ItertorMixin, IndexMixin):
@@ -179,7 +179,7 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
                  C_alpha=1,
                  k_alpha=2,
                  theta_alpha=2):
-
+        self.name = "Real Agent N Factory"
         step_of_delta = 1.0/C0_delta
 
         self.agents = []
@@ -193,7 +193,7 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
                 alpha = C_alpha * random.gamma(k_alpha, theta_alpha)
                 alpha0 = random.uniform(-alpha, alpha)
                 n = int(round(numpy.max(roots_of_n(delta, alpha))))
-                LOG.info("length: {}, balance: {}, alpha: {}, alpha0: {}".format(2*n, delta, alpha, alpha0))
+                LOG.debug("length: {}, balance: {}, alpha: {}, alpha0: {}".format(2*n, delta, alpha, alpha0))
 
                 if n > 0:
                     real_agent = RealAgentN(alpha0, alpha, n, delta)
@@ -205,10 +205,11 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
 
     @property
     def total_stocks(self):
-        _total_stocks = 0
-        for real_agent in self.agents:
-            _total_stocks += real_agent.total_stocks
-        return _total_stocks
+        return sum([real_agent.total_stocks for real_agent in self.agents])
+
+    @property
+    def total_virtual_agents(self):
+        return sum([len(real_agent) for real_agent in self.agents])
 
 
 class RealAgentDFactory(ItertorMixin, IndexMixin):
@@ -219,6 +220,7 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
                  total_stocks_of_N_agents=484,
                  k=2,
                  theta=2):
+        self.name = "Real Agent D Factory"
         _sum = 0
         for beta in frange(lower_bound_of_beta,
                            upper_bound_of_beta,
@@ -241,18 +243,21 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
 
     @property
     def total_stocks(self):
-        _total_stocks = 0
-        for real_agent in self.agents:
-            _total_stocks += real_agent.total_stocks
-        return _total_stocks
+        return sum([real_agent.total_stocks for real_agent in self.agents])
+
+    @property
+    def total_virtual_agents(self):
+        return sum([len(real_agent) for real_agent in self.agents])
 
 
 if __name__ == "__main__":
     # random.seed(123)
     N_real_agents = RealAgentNFactory()
-    print(N_real_agents.length)
-    print(N_real_agents.total_stocks)
+    print("Number of N real agents: {}".format(N_real_agents.length))
+    print("Number of stocks belonged to N real agnets: {}".format(N_real_agents.total_stocks))
+    print("Number of virtual agents belonged to N real agnets: {}".format(N_real_agents.total_virtual_agents))
 
     D_real_agents = RealAgentDFactory(total_stocks_of_N_agents=N_real_agents.total_stocks)
-    print(D_real_agents.length)
-    print(D_real_agents.total_stocks)
+    print("Number of D real agents: {}".format(D_real_agents.length))
+    print("Number of stocks belonged to D real agnets: {}".format(D_real_agents.total_stocks))
+    print("Number of virtual agents belonged to D real agnets: {}".format(D_real_agents.total_virtual_agents))
