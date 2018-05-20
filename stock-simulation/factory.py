@@ -218,14 +218,14 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
                  upper_bound_of_beta=20,
                  step_of_beta=0.5,
                  total_stocks_of_N_agents=484,
-                 k=2,
-                 theta=2):
+                 k_beta=2,
+                 theta_beta=2):
         self.name = "Real Agent D Factory"
         _sum = 0
         for beta in frange(lower_bound_of_beta,
                            upper_bound_of_beta,
                            step_of_beta):
-            _sum += _gamma(beta, k, theta)
+            _sum += _gamma(beta, k_beta, theta_beta)
 
         B = total_stocks_of_N_agents/_sum
 
@@ -233,7 +233,7 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
         for beta in frange(lower_bound_of_beta,
                            upper_bound_of_beta,
                            step_of_beta):
-            num_real_agents = int(round(B*_gamma(beta, k, theta)))
+            num_real_agents = int(round(B*_gamma(beta, k_beta, theta_beta)))
             if num_real_agents > 0:
                 real_agent1 = RealAgentD(beta, num_real_agents, constants.STATE_WANT_TO_SELL)
                 real_agent2 = RealAgentD(beta, num_real_agents, constants.STATE_WANT_TO_BUY)
