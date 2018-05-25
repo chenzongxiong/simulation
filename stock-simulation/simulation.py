@@ -1,4 +1,3 @@
-import sys
 import time
 import random
 from matplotlib import pyplot as plt
@@ -82,10 +81,11 @@ class Simulation2(object):
             _price = price
             _noise = noise
             _action = self._action(_noise)
-            LOG.info("Round #{} ACTION: {}, PRICE: {}, DELTA: {}".format(
-                i, _action, _price, delta))
+            LOG.info("Round #{} ACTION: {}, PRICE: {}, DELTA: {}, total_stocks: {}".format(
+                i, _action, _price, delta, self.total_stocks))
+
             _start = time.time()
-            price= self._simulate(_noise, _price, delta, max_iteration)
+            price = self._simulate(_noise, _price, delta, max_iteration)
             _end = time.time()
             LOG.info("Round #{} Time costs: {}".format(
                 i, _end-_start))
@@ -127,10 +127,13 @@ class Simulation2(object):
         delta = self._direction(action)*delta
         iteration = 0
         _Kn = []
+        LOG.info("Before jump to next unstable price: total assets in market is: {}".format(self.total_stocks))
+        # _Kn.append(self.total_stocks)
         # curr_diff, price = self._jump_to_next_unstable_price(price, action)
+        # LOG.info("After jump to next unstable price: total assets in market is: {}, curr_diff is: {}".format(self.total_stocks, curr_diff))
         curr_diff = self._ballot(price)
-        _Kn.append(self.total_stocks + curr_diff)
-        #import ipdb; ipdb.set_trace()
+        LOG.info("first round ballot, curr_diff is: {}".format(curr_diff))
+
         while True:
             iteration += 1
             if iteration >= max_iteration:
@@ -140,12 +143,10 @@ class Simulation2(object):
             price += delta
             prev_diff = curr_diff
             # TODO: 10 ms
-            _start = time.time()
+            # _start = time.time()
             curr_diff = self._ballot(price)
-            _end = time.time()
+            # _end = time.time()
             # LOG.info("Time elapses {} in *ballot*".format(_end-_start))
-            # import ipdb; ipdb.set_trace()
-            # _Kn.append(self.agentNs.total_stocks + self.agentDs.total_stocks + curr_diff)
             _Kn.append(self.total_stocks + curr_diff)
 
             if iteration % 1000 == 0:
@@ -161,7 +162,9 @@ class Simulation2(object):
             flag2 = self._check_stable_price(prev_diff, curr_diff)
             if flag1 or flag2:
                 # TODO: 20 ~ 40 us
+                LOG.info("Before exchanging at stable price: total assets in market is: {}".format(self.total_stocks))
                 self.market.exchange(price)
+                LOG.info("After exchanging at stable price: total assets in market is: {}".format(self.total_stocks))
                 LOG.info("Iteration #{}: reach stability price: {}. current difference is: {}, previous difference is: {}]".format(iteration, price, curr_diff, prev_diff))
                 break
             else:
@@ -173,6 +176,8 @@ class Simulation2(object):
 
         LOG.info("Total assets in market is {}".format(self.total_stocks))
         self._Kn_list.append((_Kn, action))
+        if len(self._Kn_list) >= 2:
+            self._Kn_list[-2][0].append(_Kn[0])
         return price
 
     def _check_stable_price(self, t1, t2):
@@ -250,7 +255,6 @@ class Simulation2(object):
         # LOG.info("{} agnets participant in this ballot.".format(counter))
 
         diff = self.market.number_of_buyers - self.market.number_of_sellers
-        #diff = self.market.number_of_sellers - self.market.number_of_buyers
         return diff
 
     def _jump_to_next_unstable_price(self, price, action, delta=0.001):
@@ -287,7 +291,8 @@ class Simulation2(object):
             x = range(start, start+len(_Kn), 1)
             color = "green" if action == "buy" else "red"
             plt.plot(x, _Kn, color=color)
-            start = len(_Kn) + start - 1
+            # start = len(_Kn) + start - 1
+            start = len(_Kn) + start
 
         plt.xlabel("step")
         plt.ylabel("Fn")
@@ -295,7 +300,9 @@ class Simulation2(object):
     def plot_Kn(self):
         plt.xlabel("step")
         plt.ylabel("Kn")
+
     def plot(self):
+        self.fig = plt.figure()
         plt.subplot(3, 1, 1)
         self.plot_Kn()
         plt.subplot(3, 1, 2)
@@ -305,3 +312,6 @@ class Simulation2(object):
 
     def show_plot(self):
         plt.show()
+
+    def save_plot(self, fname):
+        self.fig.savefig(fname, dpi=self.fig.dpi)

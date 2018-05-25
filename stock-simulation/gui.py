@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import filedialog
 
 import log as logging
 from simulation import Simulation2
@@ -12,10 +13,10 @@ class BaseFrame(tk.Frame):
         self.createWidgets()
 
     def createWidgets(self):
+        self._sim = None
         self.agentN_frame = AgentNFrame(self.master)
         self.agentD_frame = AgentDFrame(self.master)
         self.noise_frame = NoiseFrame(self.master)
-
 
         self.agentN_frame.pack(padx=25, pady=25)
         self.agentD_frame.pack(padx=25, pady=25)
@@ -23,8 +24,10 @@ class BaseFrame(tk.Frame):
 
         self.apply_button = tk.Button(self, text="Apply", command=self.apply)
         self.quit_button = tk.Button(self,  text="QUIT", fg="red", command=self.master.destroy)
+        self.save_button = tk.Button(self, text="Save", command=self.save_image)
         self.apply_button.pack(side="right", padx=5, pady=5, expand=True)
         self.quit_button.pack(side="right", expand=True)
+        self.save_button.pack(side="bottom", expand=True)
         self.pack()
 
     def _create_label_entry_compounds(self, name):
@@ -43,7 +46,6 @@ class BaseFrame(tk.Frame):
         getattr(self, label_name).pack(side="left", expand=True, padx=10)
         getattr(self, entry_name).pack(side="right", expand=True)
 
-
     def apply(self):
         self.parameters = {}
         # AgentN parameters
@@ -57,10 +59,21 @@ class BaseFrame(tk.Frame):
             self.parameters[k] = v.get()
 
         LOG.info("Parameter from GUI is: {}".format(self.parameters))
-        sim = Simulation2(**self.parameters)
-        sim.simulate()
-        sim.plot()
-        sim.show_plot()
+        self._sim = Simulation2(**self.parameters)
+        self._sim.simulate()
+        self._sim.plot()
+        self._sim.show_plot()
+
+    def save_image(self):
+        if not self._sim:
+            return
+
+        fname = filedialog.asksaveasfilename(title="save image...",
+                                             filetypes=(("jpeg files", "*.jpeg"),
+                                                        ("png files", "*.png"),
+                                                        ("svg files", "*.svg"),
+                                                        ("all files", "*.*")))
+        self._sim.save_plot(fname)
 
 
 class AgentNFrame(BaseFrame):
@@ -120,7 +133,6 @@ class AgentDFrame(BaseFrame):
         self._create_label_entry_compounds("step_of_beta")
         self._create_label_entry_compounds("k_beta")
         self._create_label_entry_compounds("theta_beta")
-
 
     def _load_parameters(self):
         self.lower_bound_of_beta = tk.DoubleVar(self, value=0.0)

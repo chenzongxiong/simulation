@@ -21,7 +21,6 @@ class ItertorMixin(object):
         except AttributeError:
             _agents = self._i.__next__()
 
-
         return _agents
 
     def next(self):

@@ -1,6 +1,6 @@
 import sys
-import argparse
 import random
+import argparse
 import signal
 
 import log as logging
@@ -17,13 +17,17 @@ def handler(signum, frame):
     if sim is not None:
         LOG.info("After #{} simulations, we got {}".format(sim._curr_num_transactions,
                                                            sim.market.prices))
+        print(sim._Kn_list)
         sim.plot()
         sim.show_plot()
-
+        sim.save_plot("../test.png")
     sys.exit(0)
 
 
 if __name__ == "__main__":
+    # import numpy
+    # random.seed(123)
+    # numpy.random.seed(123)
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGSEGV, handler)
 
@@ -64,5 +68,7 @@ if __name__ == "__main__":
     sim.simulate(0.01, 10000)
     LOG.info("After #{} simulations, we got {}".format(number_of_transactions,
                                                        sim.market.prices))
+    print(sim._Kn_list)
     sim.plot()
     sim.show_plot()
+    sim.save_plot("../test.png")
