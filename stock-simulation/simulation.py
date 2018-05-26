@@ -1,5 +1,6 @@
 import time
 import random
+import numpy as np
 from matplotlib import pyplot as plt
 
 import log as logging
@@ -287,12 +288,12 @@ class Simulation2(object):
 
     def plot_Fn(self):
         start = 0
+
         for _Kn, action in self._Kn_list:
-            x = range(start, start+len(_Kn), 1)
+            x = np.linspace(start, start+1, len(_Kn))
             color = "green" if action == "buy" else "red"
             plt.plot(x, _Kn, color=color)
-            # start = len(_Kn) + start - 1
-            start = len(_Kn) + start
+            start += 1
 
         plt.xlabel("step")
         plt.ylabel("Fn")
@@ -313,5 +314,5 @@ class Simulation2(object):
     def show_plot(self):
         plt.show()
 
-    def save_plot(self, fname):
-        self.fig.savefig(fname, dpi=self.fig.dpi)
+    def save_plot(self, fname, dpi=300):
+        self.fig.savefig(fname, dpi=dpi)
