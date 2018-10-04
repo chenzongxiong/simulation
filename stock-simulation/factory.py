@@ -227,7 +227,6 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
             _sum += _gamma(beta, k_beta, theta_beta)
 
         B = total_stocks_of_N_agents/_sum
-
         self.agents = []
         for beta in frange(lower_bound_of_beta,
                            upper_bound_of_beta,
@@ -250,13 +249,13 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
 
 
 if __name__ == "__main__":
-    # random.seed(123)
+    random.seed(123)
     N_real_agents = RealAgentNFactory()
     print("Number of N real agents: {}".format(N_real_agents.length))
-    print("Number of stocks belonged to N real agnets: {}".format(N_real_agents.total_stocks))
-    print("Number of virtual agents belonged to N real agnets: {}".format(N_real_agents.total_virtual_agents))
+    print("Number of stocks belonged to N real agents: {}".format(N_real_agents.total_stocks))
+    print("Number of virtual agents belonged to N real agents: {}".format(N_real_agents.total_virtual_agents))
 
     D_real_agents = RealAgentDFactory(total_stocks_of_N_agents=N_real_agents.total_stocks)
     print("Number of D real agents: {}".format(D_real_agents.length))
-    print("Number of stocks belonged to D real agnets: {}".format(D_real_agents.total_stocks))
-    print("Number of virtual agents belonged to D real agnets: {}".format(D_real_agents.total_virtual_agents))
+    print("Number of stocks belonged to D real agents: {}".format(D_real_agents.total_stocks))
+    print("Number of virtual agents belonged to D real agents: {}".format(D_real_agents.total_virtual_agents))

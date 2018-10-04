@@ -67,7 +67,7 @@ class Simulation2(object):
         LOG.info("Factory {} has {} virtual agents".format(self.agentNs.name, self.agentNs.total_virtual_agents))
         LOG.info("Factory {} has {} virtual agents".format(self.agentDs.name, self.agentDs.total_virtual_agents))
         LOG.info("****************************************")
-        time.sleep(1)
+        # time.sleep(1)
 
     def simulate(self, delta=0.01, max_iteration=10000):
         start = time.time()
@@ -75,6 +75,7 @@ class Simulation2(object):
         _action = self._action(noise)
         price = 0
         self.market.prices.append(price)
+        self._data_series = []
 
         i = 0
         self._curr_num_transactions = 0
@@ -82,8 +83,9 @@ class Simulation2(object):
             _price = price
             _noise = noise
             _action = self._action(_noise)
+            _total_stocks = self.total_stocks
             LOG.info("Round #{} ACTION: {}, PRICE: {}, DELTA: {}, total_stocks: {}".format(
-                i, _action, _price, delta, self.total_stocks))
+                i, _action, _price, delta, _total_stocks))
 
             _start = time.time()
             price = self._simulate(_noise, _price, delta, max_iteration)
@@ -99,6 +101,9 @@ class Simulation2(object):
             else:
                 i += 1
                 self._curr_num_transactions = i
+                # data
+                # _x = constants.STATE_WANT_TO_BUY if _action == "sell" else constants.STATE_WANT_TO_SELL
+                self._data_series.append([_total_stocks, _noise, _price, _action])
 
         end = time.time()
         LOG.info("Time elapses: {}".format(end-start))
@@ -316,3 +321,9 @@ class Simulation2(object):
 
     def save_plot(self, fname, dpi=300):
         self.fig.savefig(fname, dpi=dpi)
+
+    def dump_dataset(self, fname="sim.csv"):
+        # total stocks in market, stocks bought/sold by external agents, current price
+        _data = np.array(self._data_series)
+        #np.savetxt(fname, _data, fmt="%i, %i, %1.3f, %s", delimiter=',', header="#stocks, #noise, #price, #action")
+        np.savetxt(fname, _data, fmt="%s", delimiter=',', header="#stocks, #noise, #price, #action")

@@ -34,6 +34,8 @@ class Market(object):
         self._agents[instance.name] = (instance, _metadata)
 
     def exchangable(self):
+        # NOTE/BUG: the condition to judge whether it's exchangable or not
+        # might be not the same as the situation in real world
         if self._buying_agents != self._selling_agents:
             return False
         else:

@@ -18,6 +18,7 @@ def handler(signum, frame):
         LOG.info("After #{} simulations, we got {}".format(sim._curr_num_transactions,
                                                            sim.market.prices))
         print(sim._Kn_list)
+        sim.dump_dataset()
         sim.plot()
         sim.show_plot()
         sim.save_plot("../test.png")
@@ -69,6 +70,7 @@ if __name__ == "__main__":
     LOG.info("After #{} simulations, we got {}".format(number_of_transactions,
                                                        sim.market.prices))
     print(sim._Kn_list)
+    sim.dump_dataset()
     sim.plot()
     sim.show_plot()
     sim.save_plot("../test.png")
