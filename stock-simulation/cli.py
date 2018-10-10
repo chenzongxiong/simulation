@@ -49,6 +49,8 @@ if __name__ == "__main__":
     parser.add_argument("--sigma", dest="sigma",
                         required=False, type=float,
                         default=0.5)
+    parser.add_argument("--train-data", dest="train_data_fp",
+                        required=False, type=str)
 
     argv = parser.parse_args(sys.argv[1:])
 
@@ -57,6 +59,7 @@ if __name__ == "__main__":
     number_of_agentD = argv.number_of_agentD
     mu = argv.mu
     sigma = argv.sigma
+    train_data_fp = argv.train_data_fp
 
     LOG.info("****************************************")
     LOG.info("Start to simlualte #{} transaction".format(number_of_transactions))
@@ -70,7 +73,9 @@ if __name__ == "__main__":
     LOG.info("After #{} simulations, we got {}".format(number_of_transactions,
                                                        sim.market.prices))
     print(sim._Kn_list)
-    sim.dump_dataset()
+    if train_data_fp:
+        sim.dump_dataset(train_data_fp)
+
     sim.plot()
     sim.show_plot()
     sim.save_plot("../test.png")

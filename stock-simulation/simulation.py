@@ -324,6 +324,9 @@ class Simulation2(object):
 
     def dump_dataset(self, fname="sim.csv"):
         # total stocks in market, stocks bought/sold by external agents, current price
+        name = "{}-{}-{}.csv".format(self._number_of_transactions, self._mu, self._sigma)
+        fname = "{}/{}".format(fname, name)
+
         _data = np.array(self._data_series)
         #np.savetxt(fname, _data, fmt="%i, %i, %1.3f, %s", delimiter=',', header="#stocks, #noise, #price, #action")
         np.savetxt(fname, _data, fmt="%s", delimiter=',', header="#stocks, #noise, #price, #action")
