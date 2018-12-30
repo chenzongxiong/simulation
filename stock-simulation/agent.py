@@ -15,7 +15,8 @@ class BaseAgent(object):
     """An agent is a role participanting in the market. Different agents will
     take different strategies to react to the fluctuation of the price.
     `buying_signal` and `selling_signal` must be implemented by derived classes
-    since different criteria catering for different agents."""
+    since different criteria catering for different agents. One agent holds only
+    one stock"""
 
     def __init__(self,
                  state,

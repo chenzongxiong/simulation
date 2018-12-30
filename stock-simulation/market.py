@@ -34,8 +34,8 @@ class Market(object):
         self._agents[instance.name] = (instance, _metadata)
 
     def exchangable(self):
-        # NOTE/BUG: the condition to judge whether it's exchangable or not
-        # might be not the same as the situation in real world
+        # NOTE: the condition to judge whether it's exchangable or not
+        # are not the same as the situation in real world
         if self._buying_agents != self._selling_agents:
             return False
         else:
@@ -55,26 +55,23 @@ class Market(object):
             del self._agents[key]
         LOG.debug("After restoring, number of buyer is: {} and number of seller is: {}".format(self.number_of_buyers, self.number_of_sellers))
         # sanity checking
-        self._buying_agents = 0
-        self._selling_agents = 0
-        for _, _agent_with_meta in self._agents.items():
-            _agent = _agent_with_meta[0]
-            assert isinstance(_agent, agent.AgentE)
-            if _agent.state == constants.STATE_WANT_TO_BUY:
-                self._buying_agents += 1
-            else:
-                self._selling_agents += 1
+        # self._buying_agents = 0
+        # self._selling_agents = 0
+        # for _, _agent_with_meta in self._agents.items():
+        #     _agent = _agent_with_meta[0]
+        #     assert isinstance(_agent, agent.AgentE)
+        #     if _agent.state == constants.STATE_WANT_TO_BUY:
+        #         self._buying_agents += 1
+        #     else:
+        #         self._selling_agents += 1
 
     def exchange(self, price):
         """A market is responsible to help agents to exchanged their stocks
         and notifies agents as long as the transactions complete.
         --------
         Parameters:
-        price: price of stock/bitcoin in current transaction
+        price: price of stock/bitcoin in current transaction."""
 
-        Returns:
-        True means current transaction successes.
-        Otherwise, current transaction fails."""
         self._prices.append(price)
         for _agent_name, _agent_with_meta in self._agents.items():
             _agent, _meta = _agent_with_meta[0], _agent_with_meta[1]
@@ -82,7 +79,8 @@ class Market(object):
             args = _meta['args']
             getattr(_agent, func_name)(*args)
 
-        LOG.info("Exchange stocks at price %s for all agents successfully." % price)
+        LOG.info("Exchange stocks at price {} for {} buying agents and {} selling agents successfully.".format(price, self._buying_agents, self._selling_agents))
+
         # This transcation is successful, reset intermediate information for next transaction
         self.reset()
 

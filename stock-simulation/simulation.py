@@ -67,7 +67,7 @@ class Simulation2(object):
         LOG.info("Factory {} has {} virtual agents".format(self.agentNs.name, self.agentNs.total_virtual_agents))
         LOG.info("Factory {} has {} virtual agents".format(self.agentDs.name, self.agentDs.total_virtual_agents))
         LOG.info("****************************************")
-        # time.sleep(1)
+        input("Press Enter to continue...")
 
     def simulate(self, delta=0.01, max_iteration=10000):
         start = time.time()
@@ -130,28 +130,31 @@ class Simulation2(object):
         for agente in agentEs:
             getattr(agente, action)(price)
 
-        delta = self._direction(action)*delta
+        direction = self._direction(action)
+        delta = direction*delta
         iteration = 0
         _Kn = []
         LOG.info("Before jump to next unstable price: total assets in market is: {}".format(self.total_stocks))
         # _Kn.append(self.total_stocks)
         # curr_diff, price = self._jump_to_next_unstable_price(price, action)
         # LOG.info("After jump to next unstable price: total assets in market is: {}, curr_diff is: {}".format(self.total_stocks, curr_diff))
-        curr_diff = self._ballot(price)
-        LOG.info("first round ballot, curr_diff is: {}".format(curr_diff))
 
+        curr_diff = self._ballot(price, direction, True)
+        LOG.info("first round ballot, curr_diff is: {}".format(curr_diff))
+        # import ipdb; ipdb.set_trace()
         while True:
             iteration += 1
             if iteration >= max_iteration:
                 LOG.error("Max iteration #{} reaches, price {} fail to find a solution for this transaction.".format(max_iteration, price))
                 return None
 
-            price += delta
+            # prev_price = price
             prev_diff = curr_diff
+            price += delta
             # TODO: 10 ms
-            # _start = time.time()
-            curr_diff = self._ballot(price)
-            # _end = time.time()
+            _start = time.time()
+            curr_diff = self._ballot(price, direction, False)
+            _end = time.time()
             # LOG.info("Time elapses {} in *ballot*".format(_end-_start))
             _Kn.append(self.total_stocks + curr_diff)
 
@@ -233,29 +236,85 @@ class Simulation2(object):
         """
         return 1 if action == "buy" else -1
 
-    def _ballot(self, price):
-        # TODO: consider *balance*
-        # remove try-catch to improve performance
+    def _ballot(self, price, direction, first=True):
         # TODO: 0.02 s
+        """
+        direction: indicate that whether price should grow or decay
+                   1 means price would grow, -1 mean price would decay
+        """
         counter = 0
         _start = time.time()
         for real_agentn in self.agentNs:
             for agentn in real_agentn:
-                agentn.sell(price)
+                if direction == 1 and agentn.upper_bound > price:
+                        break
+
+                if direction == 1 and agentn.lower_bound > price:
+                        break
+
+                # if agentn.buying_signal(price):
+                #     LOG.info(agentn.__repr__() + " buy stock. [N agent]")
+                # if agentn.selling_signal(price):
+                #     LOG.info(agentn.__repr__() + " sell stock. [N agent]")
+
                 agentn.buy(price)
-                counter += 1
+                agentn.sell(price)
 
-        _end = time.time()
-        # LOG.info("Time {} elapses in *real agent d*".format(_end-_start))
-
-        _start = time.time()
-
-        # TODO: 0.004 s
         for real_agentd in self.agentDs:
             for agentd in real_agentd:
-                agentd.sell(price)
+                if direction == 1 and not agentd.buying_signal(price):
+                    break
+                if direction == -1 and not agentd.selling_signal(price):
+                    break
+                # if agentd.buying_signal(price):
+                #     LOG.info(agentd.__repr__() + " buy stock. [D agent]")
+                # if agentd.selling_signal(price):
+                #     LOG.info(agentd.__repr__() + " sell stock. [D agent]")
                 agentd.buy(price)
-                counter += 1
+                agentd.sell(price)
+
+        # if direction == 1:      # external agents buy, agents N sell
+        #     for real_agentn in self.agentNs:
+        #         for agentn in real_agentn:
+        #             if agentn.upper_bound > price:
+        #                 break
+        #             else:
+        #                 agentn.sell(price)
+
+        # elif direction == -1:   # external agents sell, agents N buy
+        #     for real_agentn in self.agentNs:
+        #         for agentn in real_agentn:
+        #             if agentn.lower_bound > price:
+        #                 break
+        #             else:
+        #                 agentn.buy(price)
+
+        # _end = time.time()
+        # # LOG.info("Time {} elapses in *real agent d*".format(_end-_start))
+
+        # _start = time.time()
+
+        # if first is True:
+        #     for real_agentd in self.agentDs:
+        #         for agentd in real_agentd:
+        #             agentd.tracking(price)
+
+
+        # # TODO: 0.004 s
+        # if direction == 1:      # external agents buy, agents D buy
+        #     for real_agentd in self.agentDs:
+        #         for agentd in real_agentd:
+        #             if not agentd.buying_signal(price):
+        #                 break
+        #             agentd.buy(price)
+
+        # elif direction == -1:   # external agents sell, agents D sell
+        #     for real_agentd in self.agentDs:
+        #         for agentd in real_agentd:
+        #             if not agentd.selling_signal(price):
+        #                 break
+        #             agentd.sell(price)
+
         _end = time.time()
         # LOG.info("Time {} elapses in *real agent n*".format(_end-_start))
         # LOG.info("{} agnets participant in this ballot.".format(counter))

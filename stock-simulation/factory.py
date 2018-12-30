@@ -115,6 +115,14 @@ def roots_of_n(delta, alpha):
     return numpy.roots([1, 1, -2.0*delta/alpha])
 
 
+def calculate_n(delta, alpha):
+    n = - (1.0 / alpha) * numpy.log(1 - delta * (1-numpy.exp(-alpha)) / numpy.exp(-alpha))
+    if numpy.isnan(n):
+        # n = 10
+        n = 100
+    return n
+
+
 def _gamma(x, k, theta):
     return x**k * math.exp(-x/theta) / math.gamma(k)
 
@@ -152,6 +160,9 @@ class RealAgentN(AgentFactory):
 
         assert self._check_lower_bound_ascending()
         assert self._check_upper_bound_ascending()
+
+        self._lowest_bound = self.agents[0].lower_bound
+        self._uppest_bound = self.agents[2*number_of_layer-1].upper_bound
         self._balance = delta
 
 
@@ -164,7 +175,10 @@ class RealAgentD(AgentFactory):
             self.agents[nn].selling_threshold = beta
             self.agents[nn].state = state
 
-        self._balance = beta
+        self._lowest_bound = beta
+        self.buying_threshold = self.selling_threshold = beta
+        # self._balance = beta
+        self._balance = -1
 
 
 class RealAgentNFactory(ItertorMixin, IndexMixin):
@@ -191,7 +205,8 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
             for i in range(num_real_agents):
                 alpha = C_alpha * random.gamma(k_alpha, theta_alpha)
                 alpha0 = random.uniform(-alpha, alpha)
-                n = int(round(numpy.max(roots_of_n(delta, alpha))))
+                # n = int(round(numpy.max(roots_of_n(delta, alpha))))
+                n = int(round(calculate_n(delta, alpha)))
                 LOG.debug("length: {}, balance: {}, alpha: {}, alpha0: {}".format(2*n, delta, alpha, alpha0))
 
                 if n > 0:
@@ -201,6 +216,18 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
                     self.agents.append(real_agent)
                 else:
                     LOG.warn("n is negative, ignore it.")
+
+        # arrange real agents N ascendingly
+        from operator import itemgetter, attrgetter
+        self.agents = sorted(self.agents, key=attrgetter("_lowest_bound"))
+        # self._agents_sort_asc_lower = sorted(self.agents, key=attrgetter("_lowest_bound"))
+        # self._agents_sort_asc_upper = sorted(self.agents, key=attrgetter("_uppest_bound"))
+
+    def set_agents_sort_asc_lower(self):
+        self.agents = self._agents_sort_asc_lower
+
+    def set_agents_sort_asc_upper(self):
+        self.agents = self._agents_sort_asc_upper
 
     @property
     def total_stocks(self):
@@ -259,3 +286,21 @@ if __name__ == "__main__":
     print("Number of D real agents: {}".format(D_real_agents.length))
     print("Number of stocks belonged to D real agents: {}".format(D_real_agents.total_stocks))
     print("Number of virtual agents belonged to D real agents: {}".format(D_real_agents.total_virtual_agents))
+
+    lowest_bounds = []
+    N_real_agents.set_agents_sort_asc_lower()
+    for real_agent in N_real_agents:
+        lowest_bounds.append(real_agent._lowest_bound)
+    print("N lowest_bounds: ", lowest_bounds)
+
+    lowest_bounds = []
+    for real_agent in D_real_agents:
+        lowest_bounds.append(real_agent._lowest_bound)
+    print("D lowest_bounds: ", lowest_bounds)
+
+
+    uppest_bounds = []
+    N_real_agents.set_agents_sort_asc_upper()
+    for real_agent in N_real_agents:
+        uppest_bounds.append(real_agent._uppest_bound)
+    print("N uppest_bounds: ", uppest_bounds)
