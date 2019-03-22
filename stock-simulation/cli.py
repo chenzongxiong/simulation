@@ -2,8 +2,9 @@ import sys
 import random
 import argparse
 import signal
-
+import numpy as np
 import log as logging
+
 from simulation import Simulation2
 
 LOG = logging.getLogger(__name__)
@@ -28,7 +29,8 @@ def handler(signum, frame):
 if __name__ == "__main__":
     # import numpy
     # random.seed(123)
-    # numpy.random.seed(123)
+    np.random.seed(123)
+
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGSEGV, handler)
 
@@ -36,7 +38,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--number-of-transactions", dest="number_of_transactions",
                         required=False, type=int,
-                        default=100)
+                        default=1000)
     parser.add_argument("--number-of-agentN", dest="number_of_agentN",
                         required=False, type=int,
                         default=300)
@@ -48,7 +50,7 @@ if __name__ == "__main__":
                         default=0)
     parser.add_argument("--sigma", dest="sigma",
                         required=False, type=float,
-                        default=0.5)
+                        default=20)
     parser.add_argument("--train-data", dest="train_data_fp",
                         required=False, type=str)
 
@@ -72,10 +74,9 @@ if __name__ == "__main__":
     sim.simulate(0.01, 10000)
     LOG.info("After #{} simulations, we got {}".format(number_of_transactions,
                                                        sim.market.prices))
-    print(sim._Kn_list)
-    if train_data_fp:
-        sim.dump_dataset(train_data_fp)
+    # print(sim._Kn_list)
 
+    sim.dump_dataset()
     sim.plot()
     sim.show_plot()
     sim.save_plot("../test.png")

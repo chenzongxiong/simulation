@@ -76,7 +76,7 @@ class Simulation2(object):
         price = 0
         self.market.prices.append(price)
         self._data_series = []
-
+        self._random_walk = [0]
         i = 0
         self._curr_num_transactions = 0
         while i < self._number_of_transactions:
@@ -103,7 +103,9 @@ class Simulation2(object):
                 self._curr_num_transactions = i
                 # data
                 # _x = constants.STATE_WANT_TO_BUY if _action == "sell" else constants.STATE_WANT_TO_SELL
-                self._data_series.append([_total_stocks, _noise, _price, _action])
+                # TODO: obtain random walk
+                self._random_walk.append(_noise + self._random_walk[-1])
+                self._data_series.append([_total_stocks, _noise, _price, self._random_walk[-1], _action])
 
         end = time.time()
         LOG.info("Time elapses: {}".format(end-start))
@@ -378,14 +380,17 @@ class Simulation2(object):
     def show_plot(self):
         plt.show()
 
-    def save_plot(self, fname, dpi=300):
+    def save_plot(self, fname=None, dpi=300):
+        fname = "../training-dataset/mu-{}-sigma-{}-points-{}.png".format(self._mu,
+                                                                          self._sigma,
+                                                                          self._number_of_transactions)
         self.fig.savefig(fname, dpi=dpi)
 
-    def dump_dataset(self, fname="sim.csv"):
+    def dump_dataset(self):
         # total stocks in market, stocks bought/sold by external agents, current price
-        name = "{}-{}-{}.csv".format(self._number_of_transactions, self._mu, self._sigma)
-        fname = "{}/{}".format(fname, name)
-
+        fname = "../training-dataset/mu{}-sigma-{}-points-{}.csv".format(self._mu,
+                                                                         self._sigma,
+                                                                         self._number_of_transactions)
         _data = np.array(self._data_series)
         #np.savetxt(fname, _data, fmt="%i, %i, %1.3f, %s", delimiter=',', header="#stocks, #noise, #price, #action")
-        np.savetxt(fname, _data, fmt="%s", delimiter=',', header="#stocks, #noise, #price, #action")
+        np.savetxt(fname, _data, fmt="%s", delimiter=',', header="#stocks, #noise, #price, #walk, #action")
