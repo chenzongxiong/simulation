@@ -76,7 +76,12 @@ class BaseAgent(object):
     def __repr__(self):
         return json.dumps({"name": self.name,
                            "state": "WANT_TO_BUY" if self.state == STATE_WANT_TO_BUY else "WANT_TO_SELL",
-                           "price": self.price})
+                           "price": self.price,
+                           "type": self.type})
+    @property
+    def type(self):
+        return NotImplementedError
+
 
 
 class AgentN(BaseAgent):
@@ -134,7 +139,8 @@ class AgentN(BaseAgent):
                            "state": "WANT_TO_BUY" if self.state == STATE_WANT_TO_BUY else "WANT_TO_SELL",
                            "price": self.price,
                            "lower_bound": self._lower_bound,
-                           "upper_bound": self._upper_bound})
+                           "upper_bound": self._upper_bound,
+                           "type": self.type})
 
     @property
     def lower_bound(self):
@@ -151,6 +157,11 @@ class AgentN(BaseAgent):
     @upper_bound.setter
     def upper_bound(self, x):
         self._upper_bound = x
+
+    @property
+    def type(self):
+        return "Agent N"
+
 
 
 class AgentD(BaseAgent):
@@ -247,8 +258,11 @@ class AgentD(BaseAgent):
                            "tracked_min": self._tracked_min,
                            "tracked_max": self._tracked_max,
                            "_buying_threshold": self._buying_threshold,
-                           "selling_threshold": self._selling_threshold})
-
+                           "selling_threshold": self._selling_threshold,
+                           "type": self.type})
+    @property
+    def type(self):
+        return "Agent D"
 
 class AgentE(BaseAgent):
     """Some agents E buy or sell some stocks between time moments n-1 and n. Moreover,
@@ -266,6 +280,9 @@ class AgentE(BaseAgent):
     def selling_signal(self, price=None):
         return self.state == STATE_WANT_TO_SELL
 
+    @property
+    def type(self):
+        return "Agent E"
 
 
 def polling(agent, prices):

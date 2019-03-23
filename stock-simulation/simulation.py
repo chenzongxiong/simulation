@@ -72,7 +72,6 @@ class Simulation2(object):
     def simulate(self, delta=0.01, max_iteration=10000):
         start = time.time()
         noise = self._generate_noise()
-        _action = self._action(noise)
         price = 0
         self.market.prices.append(price)
         self._data_series = []
@@ -95,15 +94,13 @@ class Simulation2(object):
 
             noise = self._generate_noise()
             if price is None:
+                # no suitable price found
                 while self._action(noise) == _action:
                     noise = self._generate_noise()
                 price = self.market.prices[-1]
             else:
                 i += 1
                 self._curr_num_transactions = i
-                # data
-                # _x = constants.STATE_WANT_TO_BUY if _action == "sell" else constants.STATE_WANT_TO_SELL
-                # TODO: obtain random walk
                 self._random_walk.append(_noise + self._random_walk[-1])
                 self._data_series.append([_total_stocks, _noise, _price, self._random_walk[-1], _action])
 
@@ -188,6 +185,7 @@ class Simulation2(object):
         LOG.info("Total assets in market is {}".format(self.total_stocks))
         self._Kn_list.append((_Kn, action))
         if len(self._Kn_list) >= 2:
+            # NOTE: enforce line continuous, don't remove
             self._Kn_list[-2][0].append(_Kn[0])
         return price
 
@@ -365,32 +363,47 @@ class Simulation2(object):
         plt.ylabel("Fn")
 
     def plot_Kn(self):
+        x = range(len(self._random_walk)-1)
+        plt.plot(x, self._random_walk[1:])
+        plt.legend()
+
         plt.xlabel("step")
-        plt.ylabel("Kn")
+        plt.ylabel("Kn/Bn")
+
+    def plot_noise(self):
+        noise = np.array(self._data_series)[:, 1].astype(float).reshape(-1)
+        x = range(noise.shape[0])
+        plt.plot(x, noise)
+        plt.legend()
+
+        plt.xlabel("step")
+        plt.ylabel("Noise")
 
     def plot(self):
         self.fig = plt.figure()
-        plt.subplot(3, 1, 1)
+        plt.subplot(4, 1, 1)
         self.plot_Kn()
-        plt.subplot(3, 1, 2)
+        plt.subplot(4, 1, 2)
         self.plot_Fn()
-        plt.subplot(3, 1, 3)
+        plt.subplot(4, 1, 3)
         self.plot_price()
+        plt.subplot(4, 1, 4)
+        self.plot_noise()
 
     def show_plot(self):
         plt.show()
 
     def save_plot(self, fname=None, dpi=300):
-        fname = "../training-dataset/mu-{}-sigma-{}-points-{}.png".format(self._mu,
-                                                                          self._sigma,
-                                                                          self._number_of_transactions)
+        fname = "../img/mu-{}-sigma-{}-points-{}.png".format(self._mu,
+                                                             self._sigma,
+                                                             self._number_of_transactions)
         self.fig.savefig(fname, dpi=dpi)
 
     def dump_dataset(self):
         # total stocks in market, stocks bought/sold by external agents, current price
-        fname = "../training-dataset/mu{}-sigma-{}-points-{}.csv".format(self._mu,
-                                                                         self._sigma,
-                                                                         self._number_of_transactions)
+        fname = "../training-dataset/mu-{}-sigma-{}-points-{}.csv".format(self._mu,
+                                                                          self._sigma,
+                                                                          self._number_of_transactions)
         _data = np.array(self._data_series)
         #np.savetxt(fname, _data, fmt="%i, %i, %1.3f, %s", delimiter=',', header="#stocks, #noise, #price, #action")
         np.savetxt(fname, _data, fmt="%s", delimiter=',', header="#stocks, #noise, #price, #walk, #action")
