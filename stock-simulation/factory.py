@@ -158,6 +158,7 @@ class RealAgentN(AgentFactory):
         else:
             assert self.total_stocks == number_of_layer-1
 
+        # NOTE: make sure the agents are well arranged
         assert self._check_lower_bound_ascending()
         assert self._check_upper_bound_ascending()
 

@@ -59,7 +59,6 @@ class Simulation2(object):
         self._number_of_transactions = number_of_transactions
         self._mu = mu
         self._sigma = sigma
-        self._Kn_list = []
         LOG.info("****************************************")
         LOG.info("Intializing...")
         LOG.info("Factory {} has {} stocks".format(self.agentNs.name, self.agentNs.total_stocks))
@@ -74,8 +73,10 @@ class Simulation2(object):
         noise = self._generate_noise()
         price = 0
         self.market.prices.append(price)
+        self._Kn_list = []
         self._data_series = []
         self._random_walk = [0]
+        self._kn_list = [0]
         i = 0
         self._curr_num_transactions = 0
         while i < self._number_of_transactions:
@@ -101,8 +102,8 @@ class Simulation2(object):
             else:
                 i += 1
                 self._curr_num_transactions = i
+                self._data_series.append([_total_stocks, _noise, _price, self._random_walk[-1], self._kn_list[-1], _action])
                 self._random_walk.append(_noise + self._random_walk[-1])
-                self._data_series.append([_total_stocks, _noise, _price, self._random_walk[-1], _action])
 
         end = time.time()
         LOG.info("Time elapses: {}".format(end-start))
@@ -174,6 +175,8 @@ class Simulation2(object):
                 self.market.exchange(price)
                 LOG.info("After exchanging at stable price: total assets in market is: {}".format(self.total_stocks))
                 LOG.info("Iteration #{}: reach stability price: {}. current difference is: {}, previous difference is: {}]".format(iteration, price, curr_diff, prev_diff))
+                self._kn_list.append(self._kn_list[-1] + curr_diff + noise)
+
                 break
             else:
                 # TODO: 20 ~ 40 us
@@ -246,16 +249,11 @@ class Simulation2(object):
         _start = time.time()
         for real_agentn in self.agentNs:
             for agentn in real_agentn:
-                if direction == 1 and agentn.upper_bound > price:
-                        break
-
-                if direction == 1 and agentn.lower_bound > price:
-                        break
-
-                # if agentn.buying_signal(price):
-                #     LOG.info(agentn.__repr__() + " buy stock. [N agent]")
-                # if agentn.selling_signal(price):
-                #     LOG.info(agentn.__repr__() + " sell stock. [N agent]")
+                # TODO: opitimize performance
+                # if direction == 1 and not agentn.selling_signal(price):
+                #     break
+                # if direction == -1 and not agentn.buying_signal(price):
+                #     break
 
                 agentn.buy(price)
                 agentn.sell(price)
@@ -343,13 +341,6 @@ class Simulation2(object):
         plt.xlabel("timestamp")
         plt.ylabel("price")
 
-    def _plot_kn(self, _Kn, action):
-        x = range(len(_Kn))
-        color = "green" if action == "buy" else "red"
-        plt.plot(x, _Kn, color=color, label=action)
-        plt.legend()
-        plt.show()
-
     def plot_Fn(self):
         start = 0
 
@@ -363,10 +354,9 @@ class Simulation2(object):
         plt.ylabel("Fn")
 
     def plot_Kn(self):
-        x = range(len(self._random_walk)-1)
-        plt.plot(x, self._random_walk[1:])
-        plt.legend()
-
+        x = range(len(self._random_walk))
+        plt.plot(x, self._random_walk, color='blue')
+        plt.plot(x, self._kn_list, color='red')
         plt.xlabel("step")
         plt.ylabel("Kn/Bn")
 
@@ -374,7 +364,7 @@ class Simulation2(object):
         noise = np.array(self._data_series)[:, 1].astype(float).reshape(-1)
         x = range(noise.shape[0])
         plt.plot(x, noise)
-        plt.legend()
+        # plt.legend()
 
         plt.xlabel("step")
         plt.ylabel("Noise")
@@ -406,4 +396,4 @@ class Simulation2(object):
                                                                           self._number_of_transactions)
         _data = np.array(self._data_series)
         #np.savetxt(fname, _data, fmt="%i, %i, %1.3f, %s", delimiter=',', header="#stocks, #noise, #price, #action")
-        np.savetxt(fname, _data, fmt="%s", delimiter=',', header="#stocks, #noise, #price, #walk, #action")
+        np.savetxt(fname, _data, fmt="%s", delimiter=',', header="#stocks, #noise, #price, #walk, #kn, #action")
