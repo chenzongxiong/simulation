@@ -29,7 +29,7 @@ def handler(signum, frame):
 if __name__ == "__main__":
     # import numpy
     # random.seed(123)
-    np.random.seed(123)
+    # np.random.seed(123)
 
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGSEGV, handler)

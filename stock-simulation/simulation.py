@@ -35,6 +35,8 @@ class Simulation2(object):
                  k_beta=2,
                  theta_beta=2):
 
+        np.random.seed(123)
+
         reset_market()
         self.market = get_market()
         self.agentNs = factory.RealAgentNFactory(
@@ -79,7 +81,7 @@ class Simulation2(object):
         self._kn_list = [0]
         i = 0
         self._curr_num_transactions = 0
-        while i < self._number_of_transactions:
+        while i < self._number_of_transactions + 1:
             _price = price
             _noise = noise
             _action = self._action(_noise)
@@ -102,7 +104,7 @@ class Simulation2(object):
             else:
                 i += 1
                 self._curr_num_transactions = i
-                self._data_series.append([_total_stocks, _noise, _price, self._random_walk[-1], self._kn_list[-1], _action])
+                self._data_series.append([_total_stocks, _noise, _price, self._random_walk[-1], self._kn_list[-2], _action])
                 self._random_walk.append(_noise + self._random_walk[-1])
 
         end = time.time()
