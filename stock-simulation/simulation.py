@@ -35,7 +35,8 @@ class Simulation2(object):
                  k_beta=2,
                  theta_beta=2):
 
-        np.random.seed(123)
+        random.seed(123)
+        np.random.RandomState(seed=123)
 
         reset_market()
         self.market = get_market()
@@ -71,6 +72,8 @@ class Simulation2(object):
         input("Press Enter to continue...")
 
     def simulate(self, delta=0.01, max_iteration=10000):
+        # np.random.seed(123)
+
         start = time.time()
         noise = self._generate_noise()
         price = 0

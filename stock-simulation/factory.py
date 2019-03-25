@@ -193,6 +193,10 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
                  C_alpha=1,
                  k_alpha=2,
                  theta_alpha=2):
+
+        random.seed(123)
+        numpy.random.RandomState(seed=123)
+
         self.name = "Real Agent N Factory"
         step_of_delta = 1.0/C0_delta
 
@@ -277,7 +281,7 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
 
 
 if __name__ == "__main__":
-    random.seed(123)
+    # random.seed(123)
     N_real_agents = RealAgentNFactory()
     print("Number of N real agents: {}".format(N_real_agents.length))
     print("Number of stocks belonged to N real agents: {}".format(N_real_agents.total_stocks))

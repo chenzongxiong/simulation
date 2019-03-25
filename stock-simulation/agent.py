@@ -1,5 +1,6 @@
 import json
 import random
+# from numpy import random
 import log as logging
 import constants
 from market import get_market
