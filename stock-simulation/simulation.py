@@ -158,6 +158,7 @@ class Simulation2(object):
         # plot_agent_distribution(self.agentNs.distribution, title="virtual-agentn-distribution", xlabel="balance", ylabel='#virtual agents')
         # plot_agent_distribution(self.agentNs.distribution2, title="real-agentn-distribution", xlabel="balance", ylabel='#real agents')
         # plot_agent_distribution(self.agentDs.distribution, title="virtual-agentd-distribution", xlabel='buy/sell threashold', ylabel='#virtual agents')
+        # plot_agent_distribution(self.agentDs.distribution2, title="real-agentd-distribution", xlabel='buy/sell threashold', ylabel='#virtual agents')
 
 
     def simulate(self, delta=0.01, max_iteration=5000):

@@ -258,7 +258,7 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
 
         # plt.hist(self._alpha_list, bins=50)
         # plt.show()
-        # import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         # self._lowest_bound = self.agents[0]._lowest_bound
         # self._uppest_bound = self.agents[-1]._uppest_bound
         self._lowest_bound = self._agents_sort_asc_lower[0]._lowest_bound
@@ -406,7 +406,6 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
             beta *= factor
             _sum += _gamma(beta, k_beta, theta_beta)
 
-        import ipdb; ipdb.set_trace()
         B = total_stocks_of_N_agents/_sum
         B *= 0.2
         self.agents = []
@@ -473,7 +472,13 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
     @property
     def distribution2(self):
         'number of/distribution of real agents'
+        from operator import itemgetter, attrgetter
+        agents = sorted(self.agents, key=attrgetter("_balance"))
         _distribution = {}
+        for real_agent in agents:
+            _distribution[real_agent._balance] = 0
+        for real_agent in agents:
+            _distribution[real_agent._balance] += 1
         return _distribution
 
     @property
@@ -492,7 +497,6 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
                 if agent.state == constants.STATE_WANT_TO_SELL:
                     _details[k2] += 1
         print(self._cdf)
-        import ipdb; ipdb.set_trace()
         return _details
 
 
