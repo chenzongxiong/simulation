@@ -121,7 +121,7 @@ def roots_of_n(delta, alpha):
 def calculate_n(delta, alpha):
     # x = 1 - delta * (1-numpy.exp(-alpha))
     n = - (1.0 / alpha) * numpy.log(1 - delta * (1-numpy.exp(-alpha)) / numpy.exp(-alpha))
-    # import ipdb; ipdb.set_trace()
+    LOG.debug("calculated n: {}".format(n))
     if numpy.isnan(n):
         n = 80
         LOG.debug(colors.red("fail to calcuate N, set to {}".format(n)))
@@ -210,17 +210,41 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
         self.agents = []
         self._num_of_agents_list = []
         self._delta_list = []
+        # C_delta = 0.1
         C_alpha = 1
-        k_alpha = 2
-        theta_alpha = 2
 
         lower_bound_of_delta = 0
         upper_bound_of_delta = 40
+        step_of_delta = 0.5
+        factor = 1
+        skew = 0
+
+        #### alpha is range from [1, 3]
+        # k_alpha = 2
+        # theta_alpha = 2
+        # lower_bound_of_delta = 0.05239
+        # upper_bound_of_delta = 0.581976
+        # points = 100
+        # step_of_delta = (upper_bound_of_delta - lower_bound_of_delta) / points
+        # factor = 37.7657
+        # skew = 0
+
+        #### alpha is range from [3, 4]
+        # lower_bound_of_delta = 0.01857
+        # upper_bound_of_delta = 0.05239
+        # points = 100
+        # step_of_delta = (upper_bound_of_delta - lower_bound_of_delta) / points
+        # factor = 591
+        # skew = -9
+        # k_alpha = 9
+        # theta_alpha = 0.5
 
         for delta in frange(lower_bound_of_delta,
                             upper_bound_of_delta,
                             step_of_delta):
-            num_real_agents = int(round(C_delta*_gamma(delta,
+
+            mapped_delta = delta*factor + skew
+            num_real_agents = int(round(C_delta*_gamma(mapped_delta,
                                                        k_delta,
                                                        theta_delta)))
             self._delta_list.append(delta)
@@ -229,14 +253,16 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
             for i in range(num_real_agents):
                 # alpha = C_alpha * random.gamma(k_alpha, theta_alpha) / 2000
                 # alpha = C_alpha * random.gamma(k_alpha, theta_alpha) / 100
-                alpha = C_alpha * random.gamma(k_alpha, theta_alpha) / 100
+                # alpha = C_alpha * random.gamma(k_alpha, theta_alpha) / 100
 
+                alpha = C_alpha * random.gamma(k_alpha, theta_alpha) / 100
                 self._alpha_list.append(alpha)
                 alpha0 = random.uniform(-alpha, alpha)
                 n = int(round(calculate_n(delta, alpha)))
                 LOG.debug("length: {}, delta/balance: {}, alpha: {:.5f}, alpha0: {:.5f}".format(2*n, delta, alpha, alpha0))
 
                 if n > 0:
+                    # import ipdb; ipdb.set_trace()
                     real_agent = RealAgentN(alpha0, alpha, n, delta)
                     # sanity checking
                     assert real_agent.length == 2*n
@@ -258,7 +284,7 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
 
         # plt.hist(self._alpha_list, bins=50)
         # plt.show()
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         # self._lowest_bound = self.agents[0]._lowest_bound
         # self._uppest_bound = self.agents[-1]._uppest_bound
         self._lowest_bound = self._agents_sort_asc_lower[0]._lowest_bound
@@ -315,7 +341,6 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
 
         return max_width_
 
-
     @property
     def distribution(self):
         from operator import itemgetter, attrgetter
@@ -366,7 +391,7 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
 
         for real_agent in self.agents:
             width = (real_agent._uppest_bound - real_agent._lowest_bound) / (2 * len(real_agent))
-            print("width: {}".format(width))
+            # print("width: {}".format(width))
             k1 = 'buy-{:.5f}'.format(width)
             k2 = 'sell-{:.5f}'.format(width)
             if k1 not in _details:
@@ -379,7 +404,7 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
                     _details[k1] += 1
                 if agent.state == constants.STATE_WANT_TO_SELL:
                     _details[k2] += 1
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         return _details
 
 
@@ -392,14 +417,15 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
                  k_beta=2,
                  theta_beta=2):
         self.name = "Real Agent D Factory"
-        # step_of_beta = 0.13
-        # step_of_beta = 0.13
         step_of_beta = 0.0015
-        lower_bound_of_beta = 0.001
+        # lower_bound_of_beta = 0.001
         # upper_bound_of_beta = 0.2
-        upper_bound_of_beta = 0.2
+        lower_bound_of_beta = 0.001
+        upper_bound_of_beta = 0.4
+        # points = 300
+        # step_of_beta = (upper_bound_of_beta - lower_bound_of_beta) / points
         _sum = 0
-        factor = 80
+        factor = 50
         for beta in frange(lower_bound_of_beta,
                            upper_bound_of_beta,
                            step_of_beta):
@@ -410,6 +436,7 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
         B *= 0.2
         self.agents = []
         self._cdf = [0]
+
         for beta in frange(lower_bound_of_beta,
                            upper_bound_of_beta,
                            step_of_beta):
@@ -484,6 +511,7 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
     @property
     def details(self):
         _details = {}
+        import ipdb; ipdb.set_trace()
         for real_agent in self.agents:
             for agent in real_agent:
                 k1 = 'buy-{}'.format(agent.buying_threshold)

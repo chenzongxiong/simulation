@@ -154,9 +154,9 @@ class Simulation2(object):
         LOG.debug("max threshold of D agents: {}".format(self.agentDs.max_threshold))
         LOG.info("****************************************")
         input("Press Enter to continue...")
-        # import ipdb; ipdb.set_trace()
         # plot_agent_distribution(self.agentNs.distribution, title="virtual-agentn-distribution", xlabel="balance", ylabel='#virtual agents')
         # plot_agent_distribution(self.agentNs.distribution2, title="real-agentn-distribution", xlabel="balance", ylabel='#real agents')
+        # plot_agent_distribution(self.agentNs.details, title="AgentN-Details", xlabel="width", ylabel='#virtual agents')
         # plot_agent_distribution(self.agentDs.distribution, title="virtual-agentd-distribution", xlabel='buy/sell threashold', ylabel='#virtual agents')
         # plot_agent_distribution(self.agentDs.distribution2, title="real-agentd-distribution", xlabel='buy/sell threashold', ylabel='#virtual agents')
 
@@ -164,7 +164,8 @@ class Simulation2(object):
     def simulate(self, delta=0.01, max_iteration=5000):
         # np.random.seed(123)
         max_iteration = 200
-        delta = 0.005
+        # delta = 0.005
+        delta = 0.07
         start = time.time()
         noise = self._generate_noise()
         price = 0
@@ -209,8 +210,9 @@ class Simulation2(object):
 
     def _simulate(self, noise, price, delta=0.01, max_iteration=5000):
         # __price = price
-        max_iteration = 400
+        max_iteration = 5000
         delta = 0.001
+        # delta = 0.02
         LOG.info("Noise is {}".format(noise))
         # number of external agents
         action = self._action(noise)
@@ -260,7 +262,7 @@ class Simulation2(object):
                                   self._mu,
                                   self._sigma,
                                   True)
-                import ipdb; ipdb.set_trace()
+                # import ipdb; ipdb.set_trace()
                 self.agentDs.restore()
                 self.market.reset()
                 return None
