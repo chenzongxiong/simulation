@@ -4,7 +4,7 @@ import random
 import log as logging
 import constants
 from market import get_market
-
+import colors
 
 LOG = logging.getLogger(__name__)
 
@@ -57,12 +57,25 @@ class BaseAgent(object):
         # Update stock/bitcoin's price
         self.price = price
         # Switch current state from `STATE_WANT_TO_BUY` to `STATE_WANT_TO_SELL`
+        if isinstance(self, AgentD):
+            LOG.debug(colors.cyan("{} *buys* a stock/bitcoin at price {:.3f}."
+                                  .format(self.name, price)))
+        else:
+            LOG.debug("{} *buys* a stock/bitcoin at price {:.3f}."
+                      .format(self.name, price))
         self.state = STATE_WANT_TO_SELL
 
     def postprocess_sell(self, price):
         self.profits.append(price - self.price)
-        LOG.debug("{} sells a stock/bitcoin at price {}, and gets profit {}."
-                  .format(self.name, price, self.profits[-1]))
+        # LOG.debug("{} *sells* a stock/bitcoin at price {:.3f}."
+        #           .format(self.name, price))
+        if isinstance(self, AgentD):
+            LOG.debug(colors.cyan("{} *buys* a stock/bitcoin at price {:.3f}."
+                                  .format(self.name, price)))
+        else:
+            LOG.debug("{} *buys* a stock/bitcoin at price {:.3f}."
+                      .format(self.name, price))
+
         # Reset `price` since we have sold it
         self.price = None
         # Switch current state from `STATE_WANT_TO_SELL` to `STATE_WANT_TO_BUY`
@@ -193,30 +206,52 @@ class AgentD(BaseAgent):
 
         self._tracked_min = None
         self._tracked_max = None
+        self._shadow_tracked_mins = []
+        self._shadow_tracked_maxs = []
 
     def tracking(self, price):
+         # TODO: bugs here. I think. How to fix it?
+        # self._shadow_tracked_max = self._tracked_max
+        # self._shadow_tracked_min = self._tracked_min
+
         if self.state == STATE_WANT_TO_BUY:
             assert self._tracked_max is None, "You're in state `STATE_WANT_TO_BUY`, `tracked_max` must be None."
             if self._tracked_min is None:
                 self._tracked_min = price
             else:
                 self._tracked_min = price if price < self._tracked_min else self._tracked_min
+            self._shadow_tracked_mins.append(price)
         elif self.state == STATE_WANT_TO_SELL:
             assert self._tracked_min is None, "You're in state `STATE_WANT_TO_SELL`, `tracked_min` must be None."
             if self._tracked_max is None:
                 self._tracked_max = price
             else:
                 self._tracked_max = price if price > self._tracked_max else self._tracked_max
+            self._shadow_tracked_maxs.append(price)
 
     def buying_signal(self, price):
         return (self.state == STATE_WANT_TO_BUY) and \
-            (self._tracked_min is not None) and \
-            (price - self._tracked_min) >= self._buying_threshold
+          (self._tracked_min is not None) and \
+          (price - self._tracked_min) >= self._buying_threshold
+
+        # a =(self.state == STATE_WANT_TO_BUY) and \
+        #   (self._tracked_min is not None) and \
+        #   (price - self._tracked_min) >= self._buying_threshold
+        # if a is True:
+        #     LOG.debug(colors.green("================== D Agent buying is trigger ================="))
+        # return a
 
     def selling_signal(self, price):
         return (self.state == STATE_WANT_TO_SELL) and \
-            (self._tracked_max is not None) and \
-            (self._tracked_max - price) >= self._selling_threshold
+          (self._tracked_max is not None) and \
+          (self._tracked_max - price) >= self._selling_threshold
+
+        # a = (self.state == STATE_WANT_TO_SELL) and \
+        #   (self._tracked_max is not None) and \
+        #   (self._tracked_max - price) >= self._selling_threshold
+        # if a is True:
+        #     LOG.debug(colors.green("================== D Agent selling is trigger ================="))
+        # return a
 
     def buy(self, price):
         self.tracking(price)
@@ -225,6 +260,7 @@ class AgentD(BaseAgent):
     def postprocess_buy(self, price):
         super(AgentD, self).postprocess_buy(price)
         self._tracked_max = price
+        self._shadow_tracked_maxs = []
         self._tracked_min = None
 
     def sell(self, price):
@@ -234,7 +270,18 @@ class AgentD(BaseAgent):
     def postprocess_sell(self, price):
         super(AgentD, self).postprocess_sell(price)
         self._tracked_min = price
+        self._shadow_tracked_mins = []
         self._tracked_max = None
+
+    def fallback(self):
+        # import ipdb;  ipdb.set_trace()
+        # if self.state == STATE_WANT_TO_SELL:
+        #     assert self._tracked_min is None
+        #     self._tracked_max = self._shadow_tracked_max
+        # elif self.state == STATE_WANT_TO_BUY:
+        #     assert self._tracked_max is None
+        #     self._tracked_min = self._shadow_tracked_min
+        pass
 
     @property
     def selling_threshold(self):
@@ -251,6 +298,22 @@ class AgentD(BaseAgent):
     @buying_threshold.setter
     def buying_threshold(self, x):
         self._buying_threshold = x
+
+    @property
+    def tracked_min(self):
+        return self._tracked_min
+
+    @property
+    def tracked_max(self):
+        return self._tracked_max
+
+    @tracked_min.setter
+    def tracked_min(self, x):
+        self._tracked_min = x
+
+    @tracked_max.setter
+    def tracked_max(self, x):
+        self._tracked_max = x
 
     def __repr__(self):
         return json.dumps({"name": self.name,
