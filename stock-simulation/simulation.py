@@ -40,37 +40,40 @@ def plot_agent_distribution(details, title='', xlabel='', ylabel=''):
     fig.savefig("./{}.png".format(title), dpi=400)
 
 
-def plot_price_stocks(prices, Kns, B1, B2, B3, index=None, mu=0, sigma=-1, failed=False):
+def plot_price_stocks(prices, stocks, B1, B2, B3, index, mu, sigma, failed=False):
+    '''
+    prices: the prices attemped find a root
+    stocks: stocks changes corresponding to the changes of prices
+    B1: the start line
+    B2: the ideal line should reach
+    B3: the real line reached
+    index: the number of the transaction (or transaction id)
+    mu, sigma: meta data
+    failed: a flag to show whether the transaction is failure or success
+    '''
     fig = plt.figure()
-    prices = np.array(prices)
-    # prices = prices[1:]
-    Kns = np.array(Kns)
-    # Kns = Kns[1:] - Kns[:-1]
+    prices, stocks = np.array(prices), np.array(stocks)
     if np.all(prices[1:] - prices[:-1] >= 0):
         color = 'black'
-        txt = "Increase"
+        txt = "INCREASE"
     else:
         color = 'blue'
-        txt = 'Decrease'
+        txt = 'DECREASE'
 
-    l = len(prices)
-    if l == 1:
-        l = 10
-    B1 = np.array([B1]*l)
-    B2 = np.array([B2]*l)
-    B3 = np.array([B3]*l)
+    l = 10 if len(prices) == 1 else len(prices)
 
-    plt.plot(prices, B1, color='red', linewidth=1)
-    plt.plot(prices, B2, color='cyan', linewidth=2)
-    plt.plot(prices, B3, color='black', linewidth=4)
-
-    plt.plot(prices, Kns, color=color, marker='o', markersize=8)
-    # import ipdb; ipdb.set_trace()
-    # plt.arrow(prices.mean(), Kns.mean(), prices.mean() / 1000, 0, shape='left')
-    # plt.arrow(prices.mean(), Kns.mean(), prices.mean() / 10, 0, shape='right')
-    plt.text(prices.mean(), Kns.mean(), txt)
+    B1, B2, B3 = np.array([B1]*l), np.array([B2]*l), np.array([B3]*l)
+    # plt.plot(prices, B1, color='red', linewidth=1)
+    # plt.plot(prices, B2, color='cyan', linewidth=2)
+    # plt.plot(prices, B3, color='black', linewidth=4)
+    plt.plot(prices, B1, 'r', prices, B2, 'c', prices, B3, 'k*')
+    plt.plot(prices, Kns, color=color, marker='o', markersize=2)
+    plt.text(prices.mean(), stocks.mean(), txt)
     plt.xlabel("Prices")
     plt.ylabel("#Stocks")
+
+    plt.show()
+
     if failed is True:
         fname = './frames-mu-{}-sigma-{}/{}-failed.png'.format(mu, sigma, index)
     else:
@@ -78,6 +81,7 @@ def plot_price_stocks(prices, Kns, B1, B2, B3, index=None, mu=0, sigma=-1, faile
 
     os.makedirs(os.path.dirname(fname), exist_ok=True)
     fig.savefig(fname, dpi=400)
+
 
 
 class Simulation2(object):
@@ -129,7 +133,7 @@ class Simulation2(object):
         self._number_of_transactions = number_of_transactions
         self._mu = mu
         self._sigma = sigma
-        self._participated_agents = []
+        self._participated_agents_list = []
         self._baseline_total_stocks = self.agentDs.total_stocks + self.agentNs.total_stocks
         LOG.info("****************************************")
         LOG.info("Intializing...")
@@ -162,172 +166,197 @@ class Simulation2(object):
 
 
     def simulate(self, delta=0.01, max_iteration=5000):
-        # np.random.seed(123)
-        max_iteration = 200
-        # delta = 0.005
         delta = 0.07
-        start = time.time()
-        noise = self._generate_noise()
-        price = 0
+        price, noise = 0, self._generate_noise()
+        self._curr_num_transactions = 0
+
         self.market.prices.append(price)
         self._Kn_list = []
         self._data_series = []
-        self._random_walk = [0]
-        self._kn_list = [0]
-        i = 0
-        self._curr_num_transactions = 0
+        self._ideal_noise_list, self._real_noise_list = [0], [0]
 
-        self.agentDs.backup()
-
-        while i < self._number_of_transactions + 1:
-            _price = price
-            _noise = noise
-            _action = self._action(_noise)
-            _total_stocks = self.total_stocks
-            LOG.info(colors.yellow("Round #{} ACTION: {}, PRICE: {:.3f}, DELTA: {}, total_stocks: {}, noise/total_stocks is: {:.3f} %".format(
-                i, _action, _price, delta, _total_stocks, abs(_noise/_total_stocks) * 100)))
+        start = time.time()
+        for i in range(self._number_of_transactions + 1):
+            _price, _noise = price, noise
+            LOG.info(colors.yellow("Round #{} ACTION: {}, PRICE: {:.3f}, DELTA: {}, total_stocks: {}, noise/total_stocks is: {:.3f} %".format(i, self._action(_noise), _price, delta, self._total_stocks, abs(_noise/self._total_stocks) * 100)))
 
             _start = time.time()
-            price = self._simulate(_noise, _price, delta, max_iteration)
+            self.agentDs.backup()
+            price, noise = self._simulate(_noise, _price, delta, max_iteration), self._generate_noise()
             _end = time.time()
-            LOG.info("Round #{} Time costs: {}".format(
-                i, _end-_start))
+            LOG.info("Round #{} Time costs: {}".format(i, _end-_start))
 
-            noise = self._generate_noise()
             if price is None:
                 # no suitable price found
                 while self._action(noise) == _action:
                     noise = self._generate_noise()
                 price = self.market.prices[-1]
-            else:
-                i += 1
-                self._curr_num_transactions = i
-                self._data_series.append([_total_stocks, _noise, _price, self._random_walk[-1], self._kn_list[-2], _action])
-                self._random_walk.append(_noise + self._random_walk[-1])
+
+            self._curr_num_transactions = i
+            self._ideal_noise_list.append(_noise + self._ideal_noise_list[-1])
+            self._data_series.append([self._total_stocks, _noise, _price, self._ideal_noise_list[-1], self._real_noise_list[-1], self._action(_noise)])
 
         end = time.time()
         LOG.info("Time elapses: {}".format(end-start))
 
-    def _simulate(self, noise, price, delta=0.01, max_iteration=5000):
-        # __price = price
-        max_iteration = 5000
-        delta = 0.001
-        # delta = 0.02
+
+    def _simulate_helper(self, noise, price, fake=False, delta=0.01, max_iteration=5000):
+        noise = noise if fake is False else -noise
         LOG.info("Noise is {}".format(noise))
+        state = constants.STATE_WANT_TO_BUY if self._action(noise) == "buy" else constants.STATE_WANT_TO_SELL
         # number of external agents
-        action = self._action(noise)
-
-        if action == "buy" and self.agentNs.total_stocks == 0:
-            LOG.warn("No one wants to sell stocks/bitcoins in market.")
-            return None
-        if action == "sell" and \
-           self.agentNs.total_stocks == self.agentNs.length * self.agentNs[0].length:
-            LOG.warn("No one wants to buy stocks/bitcoins in market.")
-            return None
-
-        state = constants.STATE_WANT_TO_BUY \
-            if action == "buy" else constants.STATE_WANT_TO_SELL
-
-        agentEs = factory.AgentFactory(agent.AgentE, abs(noise),
-                                       agent_name="Agent-E",
-                                       state=state)
+        agentEs = factory.AgentFactory(agent.AgentE, abs(noise), agent_name="Agent-E", state=state)
         for agente in agentEs:
             getattr(agente, action)(price)
 
-        direction = self._direction(action)
-        delta = direction*delta
-        iteration = 0
-        # _Kn = [self.total_stocks - noise]
-        # _price_list = [price]
-        _Kn = []
-        _price_list = []
+        delta = self._direction(action)*delta
         LOG.info("Before jump to next unstable price: total assets in market is: {}".format(self.total_stocks))
-        # _Kn.append(self.total_stocks)
-        # curr_diff, price = self._jump_to_next_unstable_price(price, action)
-        # LOG.info("After jump to next unstable price: total assets in market is: {}, curr_diff is: {}".format(self.total_stocks, curr_diff))
-
-        curr_diff = self._ballot(price, direction, True)
+        prev_diff, curr_diff = None, self._ballot(price, direction, True)
         LOG.info("first round ballot, curr_diff is: {}".format(curr_diff))
 
-        _Kn.append(self.total_stocks + curr_diff)
-        _price_list.append(price)
-        while True:
-            iteration += 1
-            if iteration >= max_iteration:
-                LOG.error(colors.red("Max iteration #{} reaches, price {} fail to find a solution for this transaction.".format(max_iteration, price)))
-                plot_price_stocks(_price_list, [i + noise for i in _Kn], self.total_stocks,
-                                  self.total_stocks + noise,
-                                  self.total_stocks + noise + curr_diff,
-                                  self._curr_num_transactions,
-                                  self._mu,
-                                  self._sigma,
-                                  True)
-                # import ipdb; ipdb.set_trace()
-                self.agentDs.restore()
-                self.market.reset()
-                return None
+        _stock_list, _price_list = [self.total_stocks + curr_diff], [price]
 
-            prev_diff = curr_diff
+        failed = True
+        for iteration in range(max_iteration):
             price += delta
-            # TODO: 10 ms
-            _start = time.time()
-            curr_diff = self._ballot(price, direction, False)
-
-            _Kn.append(self.total_stocks + curr_diff)
+            prev_diff, curr_diff = curr_diff, self._ballot(price, direction, False)
             _price_list.append(price)
-
-            _end = time.time()
-            # LOG.info("Time elapses {} in *ballot*".format(_end-_start))
-
-            if iteration % 1000 == 0:
-                LOG.info("Iteration #{}: price {}.".format(iteration, price))
-                LOG.info("Previous difference is: {}, Current difference is: {}".format(prev_diff, curr_diff))
-                LOG.info("#{} agents want to buy stocks".format(
-                    self.market.number_of_buyers))
-                LOG.info("#{} agents want to sell stocks".format(
-                    self.market.number_of_sellers))
-                # import ipdb; ipdb.set_trace()
-
-            flag1 = self.market.exchangable()
-            # TODO: 2 ~ 4 us
-            flag2 = self._check_stable_price(prev_diff, curr_diff)
+            _stock_list.append(self.total_stocks + curr_diff)
+            flag1, flag2 = self.market.exchangable(), self._check_stable_price(prev_diff, curr_diff)
             if flag1 or flag2:
-                # TODO: 20 ~ 40 us
                 LOG.info("Before exchanging at stable price: total assets in market is: {}".format(self.total_stocks))
-                # _price_list.append(price)
-                # _Kn.append(self.total_stocks + curr_diff)
-
-                self._kn_list.append(self._kn_list[-1] + curr_diff + noise)
-                plot_price_stocks(_price_list, [i + noise for i in _Kn], self.total_stocks, self.total_stocks + noise, self.total_stocks + noise + curr_diff,
-                                  self._curr_num_transactions,
-                                  self._mu,
-                                  self._sigma,
-                                  False)
-
-                self._participated_agents.append([self.market._buying_agentNs, self.market._selling_agentNs, self.market._buying_agentDs, self.market._selling_agentDs])
-                if noise + curr_diff > 0:
-                    self._participated_agents[-1] += [noise+curr_diff, 0]
+                plot_price_stocks(_price_list, [i + noise for i in _stock_list], self.total_stocks, self.total_stocks + noise, self.total_stocks + noise + curr_diff, self._curr_num_transactions, self._mu, self._sigma, failed)
+                if fake is False:
+                    self._real_noise_list.append(self._real_noise_list[-1] + curr_diff + noise)
+                    participanted_agents = [self.market._buying_agentNs, self.market._selling_agentNs,
+                                            self.market._buying_agentDs, self.market._selling_agentDs,
+                                            *(lambda x: (x, 0) if x > 0 else (0, x))(noise + curr_diff)]
+                    self._participated_agents_list.append(participanted_agents)
+                    self.market.exchange(price)
+                    failed = False
                 else:
-                    self._participated_agents[-1] += [0, abs(noise+curr_diff)]
+                    self.agentDs.restore()
+                    self.market.reset()
+                    # enforce price to be None, since it's fake
+                    price = None
 
-                self.market.exchange(price)
                 LOG.info("After exchanging at stable price: total assets in market is: {}".format(self.total_stocks))
                 LOG.info("Iteration #{}: reach stability price: {:.3f}. current difference is: {}, previous difference is: {}".format(iteration, price, curr_diff, prev_diff))
-                # import ipdb; ipdb.set_trace()
+                import ipdb; ipdb.set_trace()
                 break
-            else:
-                # TODO: 20 ~ 40 us
-                self.market.restore()
 
-        LOG.info("Factory {} has {} stocks".format(self.agentNs.name, self.agentNs.total_stocks))
-        LOG.info("Factory {} has {} stocks".format(self.agentDs.name, self.agentDs.total_stocks))
+            self.market.restore()
+            if iteration % 1000 == 0:
+                LOG.info("Iteration #{}: price {}. Previous difference is: {}, Current difference is: {}".format(iteration, price, prev_diff, curr_diff))
+                LOG.info("#{} agents want to buy stocks, #{} agents want to sell stocks".format(self.market.number_of_buyers, self.market.number_of_sellers))
 
-        LOG.info("Total assets in market is {}".format(self.total_stocks))
-        self._Kn_list.append((_Kn, action))
-        if len(self._Kn_list) >= 2:
-            # NOTE: enforce line continuous, don't remove
-            self._Kn_list[-2][0].append(_Kn[0])
-        return price
+        if faild is True:
+            LOG.error(colors.red("Max iteration #{} reaches, price {} fail to find a solution for this transaction.".format(max_iteration, price)))
+            plot_price_stocks(_price_list, [i + noise for i in _stock_list], self.total_stocks, self.total_stocks + noise, self.total_stocks + noise + curr_diff, self._curr_num_transactions, self._mu, self._sigma, failed)
+            self.agentDs.restore()
+            self.market.reset()
+        else:
+            self._Kn_list.append((_stock_list, action))
+            if len(self._Kn_list) >= 2:
+                # NOTE: enforce line continuous, don't remove
+                self._Kn_list[-2][0].append(_stock_list[0])
+
+        LOG.info("Factory N has {} stocks, Factory D has {} stocks, Total assets in market is {}.".format(self.agentNs.total_stocks, self.agentDs.total_stocks, self.total_stocks))
+        return price, _price_list, _stock_list, curr_diff, failed
+
+    def _simulate(self, noise, price, delta=0.01, max_iteration=5000):
+        fake_price, fake_price_list, fake_stock_list, fake_curr_diff, fake_failed = self._simulate_helper(noise, price, fake=True, delta=delta, max_iteration=max_iteration)
+        price, price_list, stock_list, curr_diff, failed = self._simulate_helper(noise, price, fake=False, delta=delta, max_iteration=max_iteration)
+
+        # delta = 0.001
+        # # delta = 0.02
+        # LOG.info("Noise is {}".format(noise))
+        # # number of external agents
+        # action = self._action(noise)
+
+        # if action == "buy" and self.agentNs.total_stocks == 0:
+        #     LOG.warn("No one wants to sell stocks/bitcoins in market.")
+        #     return None
+        # if action == "sell" and \
+        #    self.agentNs.total_stocks == self.agentNs.length * self.agentNs[0].length:
+        #     LOG.warn("No one wants to buy stocks/bitcoins in market.")
+        #     return None
+
+        # state = constants.STATE_WANT_TO_BUY if action == "buy" else constants.STATE_WANT_TO_SELL
+        # agentEs = factory.AgentFactory(agent.AgentE, abs(noise), agent_name="Agent-E", state=state)
+        # for agente in agentEs:
+        #     getattr(agente, action)(price)
+
+        # delta = self._direction(action)*delta
+        # LOG.info("Before jump to next unstable price: total assets in market is: {}".format(self.total_stocks))
+        # prev_diff, curr_diff = None, self._ballot(price, direction, True)
+        # LOG.info("first round ballot, curr_diff is: {}".format(curr_diff))
+        # iteration = 0
+        # _Kn, _price_list = [self.total_stocks + curr_diff], [price]
+        # while True:
+        #     iteration += 1
+        #     if iteration >= max_iteration:
+        #         LOG.error(colors.red("Max iteration #{} reaches, price {} fail to find a solution for this transaction.".format(max_iteration, price)))
+        #         plot_price_stocks(_price_list, [i + noise for i in _Kn], self.total_stocks,
+        #                           self.total_stocks + noise,
+        #                           self.total_stocks + noise + curr_diff,
+        #                           self._curr_num_transactions,
+        #                           self._mu,
+        #                           self._sigma,
+        #                           True)
+        #         # import ipdb; ipdb.set_trace()
+        #         self.agentDs.restore()
+        #         self.market.reset()
+        #         return None
+
+        #     price += delta
+        #     prev_diff, curr_diff = curr_diff, self._ballot(price, direction, False)
+        #     _Kn.append(self.total_stocks + curr_diff)
+        #     _price_list.append(price)
+
+        #     if iteration % 1000 == 0:
+        #         LOG.info("Iteration #{}: price {}.".format(iteration, price))
+        #         LOG.info("Previous difference is: {}, Current difference is: {}".format(prev_diff, curr_diff))
+        #         LOG.info("#{} agents want to buy stocks, #{}".format(self.market.number_of_buyers))
+        #         LOG.info("#{} agents want to sell stocks".format(self.market.number_of_sellers))
+
+        #     flag1, flag2 = self.market.exchangable(), self._check_stable_price(prev_diff, curr_diff)
+        #     if flag1 or flag2:
+        #         LOG.info("Before exchanging at stable price: total assets in market is: {}".format(self.total_stocks))
+        #         self._real_noise_list.append(self._real_noise_list[-1] + curr_diff + noise)
+        #         plot_price_stocks(_price_list,
+        #                           [i + noise for i in _Kn],
+        #                           self.total_stocks,
+        #                           self.total_stocks + noise,
+        #                           self.total_stocks + noise + curr_diff,
+        #                           self._curr_num_transactions,
+        #                           self._mu,
+        #                           self._sigma,
+        #                           False)
+        #         self._participated_agents_list.append([self.market._buying_agentNs, self.market._selling_agentNs, self.market._buying_agentDs, self.market._selling_agentDs])
+        #         if noise + curr_diff > 0:
+        #             self._participated_agents_list[-1] += [noise+curr_diff, 0]
+        #         else:
+        #             self._participated_agents_list[-1] += [0, abs(noise+curr_diff)]
+
+        #         self.market.exchange(price)
+        #         LOG.info("After exchanging at stable price: total assets in market is: {}".format(self.total_stocks))
+        #         LOG.info("Iteration #{}: reach stability price: {:.3f}. current difference is: {}, previous difference is: {}".format(iteration, price, curr_diff, prev_diff))
+        #         import ipdb; ipdb.set_trace()
+        #         break
+        #     else:
+        #         # TODO: 20 ~ 40 us
+        #         self.market.restore()
+
+        # LOG.info("Factory {} has {} stocks".format(self.agentNs.name, self.agentNs.total_stocks))
+        # LOG.info("Factory {} has {} stocks".format(self.agentDs.name, self.agentDs.total_stocks))
+
+        # LOG.info("Total assets in market is {}".format(self.total_stocks))
+        # self._Kn_list.append((_Kn, action))
+        # if len(self._Kn_list) >= 2:
+        #     # NOTE: enforce line continuous, don't remove
+        #     self._Kn_list[-2][0].append(_Kn[0])
+        # return price
 
     def _check_stable_price(self, t1, t2):
         return t1*t2 <= 0 and t1 != 0
@@ -478,39 +507,28 @@ class Simulation2(object):
     def plot_price(self, ax):
         timestamp = range(len(self.market.prices))
         ax.plot(timestamp, self.market.prices)
-        ax.set_xlabel("timestamp")
+        ax.set_xlabel("step")
         ax.set_ylabel("price")
 
-    def plot_Fn(self, ax):
-        start = 0
-
-        for _Kn, action in self._Kn_list:
+    def plot_Kn(self, ax):
+        for start, (_Kn, action) in zip(range(len(self._Kn_list)) self._Kn_list):
             x = np.linspace(start, start+1, len(_Kn))
             color = "green" if action == "buy" else "red"
-            linewidth = 1 if action == 'buy' else 2
-            ax.plot(x, _Kn, color=color, linewidth=linewidth)
-            start += 1
+            ax.plot(x, _Kn, color=color, linewidth=1)
 
         ax.set_xlabel("step")
-        ax.set_ylabel("Fn")
-
-    def plot_Kn(self, ax):
-        x = range(len(self._random_walk))
-        ax.plot(x, self._random_walk, color='blue')
-        ax.plot(x, self._kn_list, color='red')
-        ax.set_xlabel("step")
-        ax.set_ylabel("Kn/Bn")
+        ax.set_ylabel("Kn")
 
     def plot_noise(self, ax):
-        noise = np.array(self._data_series)[:, 1].astype(float).reshape(-1)
-        x = range(noise.shape[0])
-        ax.plot(x, noise)
+        x = range(len(self._ideal_noise_list))
+        ax.plot(x, self._ideal_noise_list, color='blue')
+        ax.plot(x, self._real_noise_list, color='red')
         ax.set_xlabel("step")
-        ax.set_ylabel("Noise")
+        ax.set_ylabel("Noise Ideal/Reality")
 
     def plot_participanted_agents(self, ax, agent_type):
-        _x = np.arange(len(self._participated_agents))
-        _y = np.array(self._participated_agents)
+        _x = np.arange(len(self._participated_agents_list))
+        _y = np.array(self._participated_agents_list)
         bar_width = 0.8
         if agent_type == 'N':
             ax.bar(_x - bar_width/2, _y[:, 0], width=bar_width, color='blue')
@@ -527,8 +545,8 @@ class Simulation2(object):
 
     def plot(self):
         self.fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6)
-        self.plot_Kn(ax1)
-        self.plot_Fn(ax2)
+        self.plot_noise(ax1)
+        self.plot_Kn(ax2)
         self.plot_price(ax3)
         self.plot_participanted_agents(ax4, agent_type='N')
         self.plot_participanted_agents(ax5, agent_type='D')
