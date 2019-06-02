@@ -40,63 +40,6 @@ def plot_agent_distribution(details, title='', xlabel='', ylabel=''):
     fig.savefig("./{}.png".format(title), dpi=400)
 
 
-def plot_price_stocks(prices, stocks, B1, B2, B3, index, mu, sigma, failed=False):
-    '''
-    prices: the prices attemped find a root
-    stocks: stocks changes corresponding to the changes of prices
-    B1: the start line
-    B2: the ideal line should reach
-    B3: the real line reached
-    index: the number of the transaction (or transaction id)
-    mu, sigma: meta data
-    failed: a flag to show whether the transaction is failure or success
-    '''
-    fig = plt.figure()
-    fake_price_list, price_list = np.array(prices[0]), np.array(prices[1])
-    fake_stock_list, stock_list = np.array(stocks[0]), np.array(stocks[1])
-    fake_B1, _B1 = B1[0], B1[1]
-    fake_B2, _B2 = B2[0], B2[1]
-    fake_B3, _B3 = B3[0], B3[1]
-
-    if np.all(fake_price_list[1:] - fake_price_list[:-1] >= 0):
-        fake_color = 'black'
-        fake_txt = "INCREASE"
-    else:
-        fake_color = 'blue'
-        fake_txt = 'DECREASE'
-
-    if np.all(price_list[1:] - price_list[:-1] >= 0):
-        color = 'black'
-        txt = "INCREASE"
-    else:
-        color = 'blue'
-        txt = 'DECREASE'
-
-    fake_l = 10 if len(fake_price_list) == 1 else len(fake_price_list)
-    l = 10 if len(price_list) == 1 else len(price_list)
-
-    fake_B1, fake_B2, fake_B3 = np.array([fake_B1]*fake_l), np.array([fake_B2]*fake_l), np.array([fake_B3]*fake_l)
-    _B1, _B2, _B3 = np.array([_B1]*l), np.array([_B2]*l), np.array([_B3]*l)
-
-    plt.plot(fake_price_list, fake_B1, 'r', fake_price_list, fake_B2, 'c--', fake_price_list, fake_B3, 'k--')
-    plt.plot(price_list, _B1, 'r', price_list, _B2, 'c', price_list, _B3, 'k*', price_list, _B3, 'k-')
-    plt.plot(fake_price_list, fake_stock_list, color=fake_color, marker='^', markersize=2, linestyle='--')
-    plt.plot(price_list, stock_list, color=color, marker='o', markersize=2)
-    plt.text(fake_price_list.mean(), fake_stock_list.mean(), fake_txt)
-    plt.text(price_list.mean(), stock_list.mean(), txt)
-    plt.xlabel("Prices")
-    plt.ylabel("#Stocks")
-
-    # plt.show()
-    if failed is True:
-        fname = './frames-mu-{}-sigma-{}/{}-failed.png'.format(mu, sigma, index)
-    else:
-        fname = './frames-mu-{}-sigma-{}/{}.png'.format(mu, sigma, index)
-
-    os.makedirs(os.path.dirname(fname), exist_ok=True)
-    fig.savefig(fname, dpi=400)
-
-
 class Simulation2(object):
     def __init__(self,
                  number_of_transactions=100,
@@ -240,7 +183,6 @@ class Simulation2(object):
             if flag1 or flag2:
                 LOG.info("Before exchanging at stable price: total assets in market is: {}".format(self.total_stocks))
                 prev_stocks, curr_ideal_stocks, curr_reality_stocks = self.total_stocks, self.total_stocks + noise, self.total_stocks + noise + curr_diff
-                # plot_price_stocks(_price_list, [i + noise for i in _stock_list], self.total_stocks, self.total_stocks + noise, self.total_stocks + noise + curr_diff, self._curr_num_transactions, self._mu, self._sigma, failed)
                 if fake is False:
                     self._real_noise_list.append(self._real_noise_list[-1] + curr_diff + noise)
                     participanted_agents = [self.market._buying_agentNs, self.market._selling_agentNs,
@@ -264,7 +206,6 @@ class Simulation2(object):
 
         if failed is True:
             LOG.error(colors.red("Max iteration #{} reaches, price {} fail to find a solution for this transaction.".format(max_iteration, price)))
-            # plot_price_stocks(_price_list, [i + noise for i in _stock_list], self.total_stocks, self.total_stocks + noise, self.total_stocks + noise + curr_diff, self._curr_num_transactions, self._mu, self._sigma, failed)
             self.agentDs.restore()
             self.market.reset()
             # enforce price to be None, since it's fake or failed
@@ -297,9 +238,6 @@ class Simulation2(object):
                           stacked_prev_stocks,
                           stacked_curr_ideal_stocks,
                           stacked_curr_reality_stocks,
-                          self._curr_num_transactions,
-                          self._mu,
-                          self._sigma,
                           failed)
         return price
 
@@ -514,3 +452,58 @@ class Simulation2(object):
         _data = np.array(self._data_series)
         #np.savetxt(fname, _data, fmt="%i, %i, %1.3f, %s", delimiter=',', header="#stocks, #noise, #price, #action")
         np.savetxt(fname, _data, fmt="%s", delimiter=',', header="#stocks, #noise, #price, #walk, #kn, #action")
+
+    def plot_price_stocks(self, prices, stocks, B1, B2, B3, failed=False):
+        '''
+        prices: the prices attemped find a root
+        stocks: stocks changes corresponding to the changes of prices
+        B1: the start line
+        B2: the ideal line should reach
+        B3: the real line reached
+        index: the number of the transaction (or transaction id)
+        mu, sigma: meta data
+        failed: a flag to show whether the transaction is failure or success
+        '''
+        fig = plt.figure()
+        fake_price_list, price_list = np.array(prices[0]), np.array(prices[1])
+        fake_stock_list, stock_list = np.array(stocks[0]), np.array(stocks[1])
+        fake_B1, _B1 = B1[0], B1[1]
+        fake_B2, _B2 = B2[0], B2[1]
+        fake_B3, _B3 = B3[0], B3[1]
+
+        if np.all(fake_price_list[1:] - fake_price_list[:-1] >= 0):
+            fake_color = 'black'
+            fake_txt = "INCREASE"
+        else:
+            fake_color = 'blue'
+            fake_txt = 'DECREASE'
+
+        if np.all(price_list[1:] - price_list[:-1] >= 0):
+            color = 'black'
+            txt = "INCREASE"
+        else:
+            color = 'blue'
+            txt = 'DECREASE'
+
+        fake_l = 10 if len(fake_price_list) == 1 else len(fake_price_list)
+        l = 10 if len(price_list) == 1 else len(price_list)
+
+        fake_B1, fake_B2, fake_B3 = np.array([fake_B1]*fake_l), np.array([fake_B2]*fake_l), np.array([fake_B3]*fake_l)
+        _B1, _B2, _B3 = np.array([_B1]*l), np.array([_B2]*l), np.array([_B3]*l)
+
+        plt.plot(fake_price_list, fake_B1, 'r', fake_price_list, fake_B2, 'c--', fake_price_list, fake_B3, 'k--')
+        plt.plot(price_list, _B1, 'r', price_list, _B2, 'c', price_list, _B3, 'k-')
+        plt.plot(fake_price_list, fake_stock_list, color=fake_color, marker='^', markersize=2, linestyle='--')
+        plt.plot(price_list, stock_list, color=color, marker='o', markersize=2)
+        plt.text(fake_price_list.mean(), fake_stock_list.mean(), fake_txt)
+        plt.text(price_list.mean(), stock_list.mean(), txt)
+        plt.xlabel("Prices")
+        plt.ylabel("#Stocks")
+
+        # plt.show()
+        if failed is True:
+            fname = './frames-mu-{}-sigma-{}/{}-failed.png'.format(self._mu, self._sigma, self._curr_num_transactions)
+        else:
+            fname = './frames-mu-{}-sigma-{}/{}.png'.format(self._mu, self._sigma, self._curr_num_transactions)
+        os.makedirs(os.path.dirname(fname), exist_ok=True)
+        fig.savefig(fname, dpi=400)
