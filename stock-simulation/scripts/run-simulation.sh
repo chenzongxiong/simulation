@@ -12,4 +12,4 @@
 
 hostname
 source /home/zxchen/.venv3/bin/activate
-python cli.py --sigma 110 --number-of-transaction 10
+python cli.py --sigma 110 --number-of-transaction 2000
