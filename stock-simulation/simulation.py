@@ -2,6 +2,9 @@ import os
 import time
 import random
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+
 from matplotlib import pyplot as plt
 
 import log as logging
@@ -186,9 +189,16 @@ class Simulation2(object):
                 prev_stocks, curr_ideal_stocks, curr_reality_stocks = self.total_stocks, self.total_stocks + noise, self.total_stocks + noise + curr_diff
                 if fake is False:
                     self._real_noise_list.append(self._real_noise_list[-1] + curr_diff + noise)
+                    # participanted_agents = [self.market._buying_agentNs, self.market._selling_agentNs,
+                    #                         self.market._buying_agentDs, self.market._selling_agentDs,
+                    #                         *(lambda x: (x, 0) if x > 0 else (0, x))(noise + curr_diff)]
                     participanted_agents = [self.market._buying_agentNs, self.market._selling_agentNs,
-                                            self.market._buying_agentDs, self.market._selling_agentDs,
-                                            *(lambda x: (x, 0) if x > 0 else (0, x))(noise + curr_diff)]
+                                            self.market._buying_agentDs, self.market._selling_agentDs]
+                    if noise + curr_diff > 0:
+                        participanted_agents += [noise+curr_diff, 0]
+                    else:
+                        participanted_agents += [0, noise+curr_diff]
+
                     self._participated_agents_list.append(participanted_agents)
                     self.market.exchange(price)
                     failed = False
@@ -515,7 +525,7 @@ class Simulation2(object):
         plt.xlabel("Prices")
         plt.ylabel("#Stocks")
 
-        plt.show()
+        # plt.show()
         if failed is True:
             fname = './frames-mu-{}-sigma-{}/{}-failed.png'.format(self._mu, self._sigma, self._curr_num_transactions)
         else:
