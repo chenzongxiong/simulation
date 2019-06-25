@@ -26,7 +26,6 @@ def plot_agent_distribution(details, title='', xlabel='', ylabel=''):
     # bar_width = 0.35
     bar_width = 1
     ax.set_title(title)
-    # ax.bar(indexs, heights, bar_width, color={'b', 'r'})
     ax.bar(indexs, heights, bar_width, color={'b', 'r'})
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -113,15 +112,17 @@ class Simulation2(object):
         LOG.debug("min threshold of D agents: {}".format(self.agentDs.min_threshold))
         LOG.debug("max threshold of D agents: {}".format(self.agentDs.max_threshold))
         LOG.info("****************************************")
-        input("Press Enter to continue...")
+
+        # input("Press Enter to continue...")
         # plot_agent_distribution(self.agentNs.distribution, title="virtual-agentn-distribution", xlabel="balance", ylabel='#virtual agents')
         # plot_agent_distribution(self.agentNs.distribution2, title="real-agentn-distribution", xlabel="balance", ylabel='#real agents')
         # plot_agent_distribution(self.agentNs.details, title="AgentN-Details", xlabel="width", ylabel='#virtual agents')
         # plot_agent_distribution(self.agentDs.distribution, title="virtual-agentd-distribution", xlabel='buy/sell threashold', ylabel='#virtual agents')
         # plot_agent_distribution(self.agentDs.distribution2, title="real-agentd-distribution", xlabel='buy/sell threashold', ylabel='#virtual agents')
 
-
     def simulate(self, delta=0.01, max_iteration=5000):
+        self._internal_transactions = []
+
         price, noise = 0, self._generate_noise()
         self._curr_num_transactions = 0
 
@@ -233,12 +234,12 @@ class Simulation2(object):
         stacked_curr_ideal_stocks = np.array([fake_curr_ideal_stocks, curr_ideal_stocks])
         stacked_curr_reality_stocks = np.array([fake_curr_reality_stocks, curr_reality_stocks])
 
-        plot_price_stocks(stacked_price_list,
-                          stacked_stock_list,
-                          stacked_prev_stocks,
-                          stacked_curr_ideal_stocks,
-                          stacked_curr_reality_stocks,
-                          failed)
+        self.plot_price_stocks(stacked_price_list,
+                               stacked_stock_list,
+                               stacked_prev_stocks,
+                               stacked_curr_ideal_stocks,
+                               stacked_curr_reality_stocks,
+                               failed)
         return price
 
     def _check_stable_price(self, t1, t2):
@@ -450,7 +451,6 @@ class Simulation2(object):
                                                                           self._sigma,
                                                                           self._number_of_transactions)
         _data = np.array(self._data_series)
-        #np.savetxt(fname, _data, fmt="%i, %i, %1.3f, %s", delimiter=',', header="#stocks, #noise, #price, #action")
         np.savetxt(fname, _data, fmt="%s", delimiter=',', header="#stocks, #noise, #price, #walk, #kn, #action")
 
     def plot_price_stocks(self, prices, stocks, B1, B2, B3, failed=False):
@@ -470,6 +470,21 @@ class Simulation2(object):
         fake_B1, _B1 = B1[0], B1[1]
         fake_B2, _B2 = B2[0], B2[1]
         fake_B3, _B3 = B3[0], B3[1]
+
+        fname1 = '../training-dataset/mu-{}-sigma-{}-points-{}/{}-brief.csv'.format(self._mu, self._sigma, self._number_of_transactions, self._curr_num_transactions)
+        fname2 = '../training-dataset/mu-{}-sigma-{}-points-{}/{}-true-detail.csv'.format(self._mu, self._sigma, self._number_of_transactions, self._curr_num_transactions)
+        fname3 = '../training-dataset/mu-{}-sigma-{}-points-{}/{}-fake-detail.csv'.format(self._mu, self._sigma, self._number_of_transactions, self._curr_num_transactions)
+        os.makedirs(os.path.dirname(fname1), exist_ok=True)
+        # NOTE: header="#fake_start_line, #fake_ideal_line_should_reach, #fake_line_reached, #start_line, #ideal_line_should_reach, #line_reached
+        _data1 = np.hstack([fake_B1, fake_B2, fake_B3, _B1, _B2, _B3]) - self._baseline_total_stocks
+        np.savetxt(fname1, _data1, fmt="%s", delimiter=',')
+        # NOTE: header="#price_list, #stock_list""
+        _data2 = np.vstack([price_list, stock_list - self._baseline_total_stocks]).T
+        np.savetxt(fname2, _data2, fmt="%s", delimiter=',')
+        # NOTE: header="#fake_price_list, #fake_stock_list"
+        _data3 = np.vstack([fake_price_list, fake_stock_list - self._baseline_total_stocks]).T
+
+        np.savetxt(fname3, _data3, fmt="%s", delimiter=',')
 
         if np.all(fake_price_list[1:] - fake_price_list[:-1] >= 0):
             fake_color = 'black'
