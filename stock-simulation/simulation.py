@@ -466,7 +466,8 @@ class Simulation2(object):
         '''
         fig = plt.figure()
         fake_price_list, price_list = np.array(prices[0]), np.array(prices[1])
-        fake_stock_list, stock_list = np.array(stocks[0]), np.array(stocks[1])
+        fake_stock_list, stock_list = np.array(stocks[0]) - self._baseline_total_stocks, np.array(stocks[1]) - self._baseline_total_stocks
+        B1, B2, B3 = B1 - self._baseline_total_stocks, B2 - self._baseline_total_stocks, B3 - self._baseline_total_stocks
         fake_B1, _B1 = B1[0], B1[1]
         fake_B2, _B2 = B2[0], B2[1]
         fake_B3, _B3 = B3[0], B3[1]
@@ -475,15 +476,14 @@ class Simulation2(object):
         fname2 = '../training-dataset/mu-{}-sigma-{}-points-{}/{}-true-detail.csv'.format(self._mu, self._sigma, self._number_of_transactions, self._curr_num_transactions)
         fname3 = '../training-dataset/mu-{}-sigma-{}-points-{}/{}-fake-detail.csv'.format(self._mu, self._sigma, self._number_of_transactions, self._curr_num_transactions)
         os.makedirs(os.path.dirname(fname1), exist_ok=True)
-        # NOTE: header="#fake_start_line, #fake_ideal_line_should_reach, #fake_line_reached, #start_line, #ideal_line_should_reach, #line_reached
-        _data1 = np.hstack([fake_B1, fake_B2, fake_B3, _B1, _B2, _B3]) - self._baseline_total_stocks
+        # # NOTE: header="#fake_start_line, #fake_ideal_line_should_reach, #fake_line_reached, #start_line, #ideal_line_should_reach, #line_reached
+        _data1 = np.hstack([fake_B1, fake_B2, fake_B3, _B1, _B2, _B3])
         np.savetxt(fname1, _data1, fmt="%s", delimiter=',')
         # NOTE: header="#price_list, #stock_list""
-        _data2 = np.vstack([price_list, stock_list - self._baseline_total_stocks]).T
+        _data2 = np.vstack([price_list, stock_list]).T
         np.savetxt(fname2, _data2, fmt="%s", delimiter=',')
         # NOTE: header="#fake_price_list, #fake_stock_list"
-        _data3 = np.vstack([fake_price_list, fake_stock_list - self._baseline_total_stocks]).T
-
+        _data3 = np.vstack([fake_price_list, fake_stock_list]).T
         np.savetxt(fname3, _data3, fmt="%s", delimiter=',')
 
         if np.all(fake_price_list[1:] - fake_price_list[:-1] >= 0):
@@ -515,7 +515,7 @@ class Simulation2(object):
         plt.xlabel("Prices")
         plt.ylabel("#Stocks")
 
-        # plt.show()
+        plt.show()
         if failed is True:
             fname = './frames-mu-{}-sigma-{}/{}-failed.png'.format(self._mu, self._sigma, self._curr_num_transactions)
         else:
