@@ -3,7 +3,7 @@ import time
 import random
 import numpy as np
 import matplotlib
-# matplotlib.use('Agg')
+matplotlib.use('Agg')
 
 from matplotlib import pyplot as plt
 
@@ -558,7 +558,8 @@ class Simulation2(object):
         Generate noise(Pn+Pd) from price.
         '''
 
-        fname = '/Users/zxchen/predictions-batch_size-1500-first-up-1500-points.csv'
+        # fname = '/Users/zxchen/predictions-batch_size-1500-first-up-1500-points.csv'
+        fname = '../predictions-batch_size-1500-first-up-30k-points.csv'
         data = np.loadtxt(fname, skiprows=0, delimiter=",", dtype=np.float32)
         self._prices = data[:, 0]
         self._Pnd = [self.agentDs.total_stocks + self.agentNs.total_stocks]
@@ -567,8 +568,8 @@ class Simulation2(object):
 
         self.market.prices.append(self._prices[0])
         loop = self._prices.shape[0]
-        # loop = 500
-
+        # loop = 10
+        # import ipdb; ipdb.set_trace()
         direction = None
 
         for i in range(1, loop):
@@ -582,29 +583,30 @@ class Simulation2(object):
 
         self.fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
 
-        x = range(len(self._Pnd))
-        ax1.plot(x, self._Pnd, color='blue')
-        ax1.set_xlabel("step")
-        ax1.set_ylabel("Pnd")
+        # x = range(len(self._Pnd))
+        # ax1.plot(x, self._Pnd, color='blue')
+        # ax1.set_xlabel("step")
+        # ax1.set_ylabel("Pnd")
 
-        ax2.set_xlabel("step")
-        ax2.plot(x, data[:, 1][:len(x)], color='red')
-        ax2.set_ylabel("NN")
+        # ax2.set_xlabel("step")
+        # ax2.plot(x, data[:, 1][:len(x)], color='red')
+        # ax2.set_ylabel("NN")
 
-        ax3.plot(x, self._Pn, color='blue')
-        ax3.set_xlabel("step")
-        ax3.set_ylabel("Pn")
+        # ax3.plot(x, self._Pn, color='blue')
+        # ax3.set_xlabel("step")
+        # ax3.set_ylabel("Pn")
 
-        ax4.plot(x, self._Pd, color='blue')
-        ax4.set_xlabel("step")
-        ax4.set_ylabel("Pd")
-        plt.show()
+        # ax4.plot(x, self._Pd, color='blue')
+        # ax4.set_xlabel("step")
+        # ax4.set_ylabel("Pd")
+        # # plt.show()
 
         # import ipdb; ipdb.set_trace()
         self._Pnd = np.array(self._Pnd)
         self._Pn = np.array(self._Pn)
         self._Pd = np.array(self._Pd)
-
-        res = np.vstack([self._prices, self._Pn, self._Pd, self._Pnd, data[:, 1]]).T
-        fname = '/Users/zxchen/predictions-batch_size-1500-first-up-1500-points-base.csv'
+        self._prices = self._prices[:loop]
+        self._noise = data[:loop, 1]
+        res = np.vstack([self._prices, self._Pn, self._Pd, self._Pnd, self._noise]).T
+        fname = "{}-base.csv".format(fname[:-4])
         np.savetxt(fname, res, fmt="%.3f", delimiter=",")
