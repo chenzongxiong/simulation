@@ -71,12 +71,14 @@ if __name__ == "__main__":
     LOG.info("Standard deriviation of gaussian distribution: {}".format(sigma))
     LOG.info("****************************************")
     sim = Simulation2(number_of_transactions, sigma=sigma)
-    sim.simulate(0.01, 5000)
-    LOG.info("After #{} simulations, we got {}".format(number_of_transactions,
-                                                       ["%0.4f" % p for p in sim.market.prices]))
-    # print(sim._Kn_list)
+    # sim.simulate(0.01, 5000)
+    # LOG.info("After #{} simulations, we got {}".format(number_of_transactions,
+    #                                                    ["%0.4f" % p for p in sim.market.prices]))
+    # # print(sim._Kn_list)
 
-    sim.dump_dataset()
-    sim.plot()
-    sim.show_plot()
-    sim.save_plot("../test.png")
+    # sim.dump_dataset()
+    # sim.plot()
+    # sim.show_plot()
+    # sim.save_plot("../test.png")
+
+    sim.simulate2()

@@ -3,7 +3,7 @@ import time
 import random
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 
 from matplotlib import pyplot as plt
 
@@ -116,7 +116,7 @@ class Simulation2(object):
         LOG.debug("max threshold of D agents: {}".format(self.agentDs.max_threshold))
         LOG.info("****************************************")
 
-        # input("Press Enter to continue...")
+        input("Press Enter to continue...")
         # plot_agent_distribution(self.agentNs.distribution, title="virtual-agentn-distribution", xlabel="balance", ylabel='#virtual agents')
         # plot_agent_distribution(self.agentNs.distribution2, title="real-agentn-distribution", xlabel="balance", ylabel='#real agents')
         # plot_agent_distribution(self.agentNs.details, title="AgentN-Details", xlabel="width", ylabel='#virtual agents')
@@ -255,9 +255,29 @@ class Simulation2(object):
     def _check_stable_price(self, t1, t2):
         return t1*t2 <= 0 and t1 != 0
 
-    def _generate_noise(self):
+    def _generate_noise(self, from_pre_generated=False):
         """Generate external agents from gaussian distribution. This function ensures
         the number of external agnets must be integral and non-zero"""
+        # from_pre_generated = True
+        if from_pre_generated is True:
+            if not getattr(self, "_load_from_file", None):
+                # fname = '../../feng/new-dataset/models/diff_weights/method-sin/activation-None/state-0/markov_chain/mu-0/sigma-110/units-20/nb_plays-20/points-1000/input_dim-1/predictions-mu-0-sigma-110-points-1000/activation#-elu/state#-0/units#-100/nb_plays#-100/ensemble-11/loss-mle/predictions-batch_size-1500-debug-4.csv'
+                fname = '/Users/zxchen/predictions-batch_size-1500.csv'
+                data = np.loadtxt(fname, skiprows=0, delimiter=",", dtype=np.float32)
+                self._noise_outputs = data[:, 1]
+                self._noise_step = 1
+                self._noise_index = 0
+                self._pre_noise = int(round(self._noise_outputs[0]))
+
+                self._load_from_file = True
+
+            _noise = 0
+            while _noise == 0:
+                _noise = int(round(self._noise_outputs[self._noise_index])) - self._pre_noise
+                self._noise_index += self._noise_step
+            self._pre_noise = _noise
+            return _noise
+
         if not getattr(self, "_generator", None):
             self.noise_generator(random.normalvariate, self._mu, self._sigma)
 
@@ -532,3 +552,59 @@ class Simulation2(object):
             fname = './frames-mu-{}-sigma-{}/{}.png'.format(self._mu, self._sigma, self._curr_num_transactions)
         os.makedirs(os.path.dirname(fname), exist_ok=True)
         fig.savefig(fname, dpi=400)
+
+    def simulate2(self):
+        '''
+        Generate noise(Pn+Pd) from price.
+        '''
+
+        fname = '/Users/zxchen/predictions-batch_size-1500-first-up-1500-points.csv'
+        data = np.loadtxt(fname, skiprows=0, delimiter=",", dtype=np.float32)
+        self._prices = data[:, 0]
+        self._Pnd = [self.agentDs.total_stocks + self.agentNs.total_stocks]
+        self._Pn = [self.agentNs.total_stocks]
+        self._Pd = [self.agentDs.total_stocks]
+
+        self.market.prices.append(self._prices[0])
+        loop = self._prices.shape[0]
+        # loop = 500
+
+        direction = None
+
+        for i in range(1, loop):
+            self._ballot(self._prices[i], direction)
+            self.market.exchange(self._prices[i])
+
+            self._Pnd.append(self.agentDs.total_stocks + self.agentNs.total_stocks)
+            self._Pn.append(self.agentNs.total_stocks)
+            self._Pd.append(self.agentDs.total_stocks)
+
+
+        self.fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
+
+        x = range(len(self._Pnd))
+        ax1.plot(x, self._Pnd, color='blue')
+        ax1.set_xlabel("step")
+        ax1.set_ylabel("Pnd")
+
+        ax2.set_xlabel("step")
+        ax2.plot(x, data[:, 1][:len(x)], color='red')
+        ax2.set_ylabel("NN")
+
+        ax3.plot(x, self._Pn, color='blue')
+        ax3.set_xlabel("step")
+        ax3.set_ylabel("Pn")
+
+        ax4.plot(x, self._Pd, color='blue')
+        ax4.set_xlabel("step")
+        ax4.set_ylabel("Pd")
+        plt.show()
+
+        # import ipdb; ipdb.set_trace()
+        self._Pnd = np.array(self._Pnd)
+        self._Pn = np.array(self._Pn)
+        self._Pd = np.array(self._Pd)
+
+        res = np.vstack([self._prices, self._Pn, self._Pd, self._Pnd, data[:, 1]]).T
+        fname = '/Users/zxchen/predictions-batch_size-1500-first-up-1500-points-base.csv'
+        np.savetxt(fname, res, fmt="%.3f", delimiter=",")
