@@ -3,7 +3,7 @@ import time
 import random
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 
 from matplotlib import pyplot as plt
 
@@ -18,6 +18,7 @@ from market import get_market, reset_market
 LOG = logging.getLogger(__name__)
 
 def plot_agent_distribution(details, title='', xlabel='', ylabel=''):
+    import ipdb; ipdb.set_trace()
     fig, ax = plt.subplots()
     labels = []
     heights = []
@@ -66,6 +67,11 @@ class Simulation2(object):
 
         random.seed(123)
         np.random.RandomState(seed=123)
+
+        C_delta = 160
+        k_delta = 8
+        theta_delta = 1.0
+
 
         reset_market()
         self.market = get_market()
@@ -122,6 +128,24 @@ class Simulation2(object):
         # plot_agent_distribution(self.agentNs.details, title="AgentN-Details", xlabel="width", ylabel='#virtual agents')
         # plot_agent_distribution(self.agentDs.distribution, title="virtual-agentd-distribution", xlabel='buy/sell threashold', ylabel='#virtual agents')
         # plot_agent_distribution(self.agentDs.distribution2, title="real-agentd-distribution", xlabel='buy/sell threashold', ylabel='#virtual agents')
+        import pandas as pd
+        df1 = pd.DataFrame.from_dict(self.agentNs.distribution, orient='index')
+        df1.to_csv("./agentn-distribution.csv")
+        df2 = pd.DataFrame.from_dict(self.agentNs.distribution2, orient='index')
+        df2.to_csv("./agentn-distribution2.csv")
+
+        df3 = pd.DataFrame.from_dict(self.agentDs.distribution, orient='index')
+        df3.to_csv("./agentd-distribution.csv")
+        df4 = pd.DataFrame.from_dict(self.agentDs.distribution2, orient='index')
+        df4.to_csv("./agentd-distribution2.csv")
+
+        df5 = pd.DataFrame.from_dict(self.agentNs.details, orient='index')
+        df5.to_csv("./agentn-detail.csv")
+        df6 = pd.DataFrame.from_dict(self.agentDs.details, orient='index')
+        df6.to_csv("./agentd-detail.csv")
+
+        # import ipdb; ipdb.set_trace()
+        # import sys; sys.exit(1)
 
     def simulate(self, delta=0.01, max_iteration=5000):
         self._internal_transactions = []
@@ -205,6 +229,7 @@ class Simulation2(object):
                 else:
                     self.agentDs.restore()
                     self.market.reset()
+                    failed = True
 
                 LOG.info("After exchanging at stable price: total assets in market is: {}".format(self.total_stocks))
                 LOG.info("Iteration #{}: reach stability price: {:.3f}. current difference is: {}, previous difference is: {}".format(iteration, price, curr_diff, prev_diff))
@@ -215,8 +240,8 @@ class Simulation2(object):
                 LOG.info("Iteration #{}: price {}. Previous difference is: {}, Current difference is: {}".format(iteration, price, prev_diff, curr_diff))
                 LOG.info("#{} agents want to buy stocks, #{} agents want to sell stocks".format(self.market.number_of_buyers, self.market.number_of_sellers))
 
-        if failed is True:
-            LOG.error(colors.red("Max iteration #{} reaches, price {} fail to find a solution for this transaction.".format(max_iteration, price)))
+        if fake is True or failed is True:
+            LOG.error(colors.red("Faked: {}, Max iteration #{} reaches, price {} fail to find a solution for this transaction.".format(fake, max_iteration, price)))
             self.agentDs.restore()
             self.market.reset()
             # enforce price to be None, since it's fake or failed
@@ -457,6 +482,7 @@ class Simulation2(object):
             ax.bar(_x + bar_width/2, _y[:, 5], width=bar_width, color='blue', bottom=_y[:, 4])
             ax.set_ylabel("E")
 
+
     def plot(self):
         self.fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6)
         self.plot_noise(ax1)
@@ -482,6 +508,13 @@ class Simulation2(object):
                                                                           self._number_of_transactions)
         _data = np.array(self._data_series)
         np.savetxt(fname, _data, fmt="%s", delimiter=',', header="#stocks, #noise, #price, #walk, #kn, #action")
+
+        participated_agents_fname = "../training-dataset/mu-{}-sigma-{}-points-{}-participanted-agents.csv".format(self._mu,
+                                                                                                                   self._sigma,
+                                                                                                                   self._number_of_transactions)
+        participated_agents_data = np.array(self._participated_agents_list)
+        np.savetxt(participated_agents_fname, participated_agents_data, fmt="%s", delimiter=',', header="agentN1,agentN2,agentD1,agentD2,agentE1,agentE2")
+
 
     def plot_price_stocks(self, prices, stocks, B1, B2, B3, failed=False):
         '''
@@ -559,7 +592,7 @@ class Simulation2(object):
         '''
 
         # fname = '/Users/zxchen/predictions-batch_size-1500-first-up-1500-points.csv'
-        fname = '../predictions-batch_size-1500-first-up-30k-points.csv'
+        fname = '../predictions-batch_size-1500-debug-6.csv'
         data = np.loadtxt(fname, skiprows=0, delimiter=",", dtype=np.float32)
         self._prices = data[:, 0]
         self._Pnd = [self.agentDs.total_stocks + self.agentNs.total_stocks]
@@ -569,7 +602,7 @@ class Simulation2(object):
         self.market.prices.append(self._prices[0])
         loop = self._prices.shape[0]
         # loop = 10
-        # import ipdb; ipdb.set_trace()
+
         direction = None
 
         for i in range(1, loop):
@@ -581,26 +614,6 @@ class Simulation2(object):
             self._Pd.append(self.agentDs.total_stocks)
 
 
-        self.fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
-
-        # x = range(len(self._Pnd))
-        # ax1.plot(x, self._Pnd, color='blue')
-        # ax1.set_xlabel("step")
-        # ax1.set_ylabel("Pnd")
-
-        # ax2.set_xlabel("step")
-        # ax2.plot(x, data[:, 1][:len(x)], color='red')
-        # ax2.set_ylabel("NN")
-
-        # ax3.plot(x, self._Pn, color='blue')
-        # ax3.set_xlabel("step")
-        # ax3.set_ylabel("Pn")
-
-        # ax4.plot(x, self._Pd, color='blue')
-        # ax4.set_xlabel("step")
-        # ax4.set_ylabel("Pd")
-        # # plt.show()
-
         # import ipdb; ipdb.set_trace()
         self._Pnd = np.array(self._Pnd)
         self._Pn = np.array(self._Pn)
@@ -610,3 +623,25 @@ class Simulation2(object):
         res = np.vstack([self._prices, self._Pn, self._Pd, self._Pnd, self._noise]).T
         fname = "{}-base.csv".format(fname[:-4])
         np.savetxt(fname, res, fmt="%.3f", delimiter=",")
+
+        self.fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
+
+        x = range(len(self._Pnd))
+        ax1.plot(x, self._Pnd, color='blue')
+        ax1.set_xlabel("step")
+        ax1.set_ylabel("Pnd")
+
+        ax2.set_xlabel("step")
+        ax2.plot(x, data[:, 1][:len(x)], color='red')
+        ax2.set_ylabel("NN")
+
+        ax3.plot(x, self._Pn, color='blue')
+        ax3.set_xlabel("step")
+        ax3.set_ylabel("Pn")
+
+        ax4.plot(x, self._Pd, color='blue')
+        ax4.set_xlabel("step")
+        ax4.set_ylabel("Pd")
+        plt.show()
+        fname = "{}-base.png".format(fname[:-4])
+        self.fig.savefig(fname, dpi=400)
