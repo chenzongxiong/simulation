@@ -131,8 +131,8 @@ def calculate_n(delta, alpha):
 
 
 def _gamma(x, k, theta):
-    return x**k * math.exp(-x/theta) / math.gamma(k)
-
+    return (x**(k-1)) * math.exp(-x/theta) / (math.gamma(k) * (theta**k))
+    # return x**k * math.exp(-x/theta) / math.gamma(k)
 
 def frange(start, stop, step):
     i = start
@@ -148,6 +148,9 @@ class RealAgentN(AgentFactory):
         super(RealAgentN, self).__init__(agent.AgentN, 2*number_of_layer, agent_name="Agent-N")
         self._number_of_layer = number_of_layer
 
+        self._vagent_to_sell = 0
+        self._vagent_to_buy = 0
+
         for nn in range(0, 2*number_of_layer):
             lower_bound = alpha0 + (nn-number_of_layer)*alpha
 
@@ -156,8 +159,10 @@ class RealAgentN(AgentFactory):
 
             if lower_bound >= 0:
                 self.agents[nn].state = constants.STATE_WANT_TO_SELL
+                self._vagent_to_sell += 1
             else:
                 self.agents[nn].state = constants.STATE_WANT_TO_BUY
+                self._vagent_to_buy += 1
 
         # sanity check
         if alpha0 >= 0:
@@ -172,6 +177,7 @@ class RealAgentN(AgentFactory):
         self._lowest_bound = self.agents[0].lower_bound
         self._uppest_bound = self.agents[2*number_of_layer-1].upper_bound
         self._balance = delta
+        self._alpha = alpha
 
 
 class RealAgentD(AgentFactory):
@@ -186,6 +192,8 @@ class RealAgentD(AgentFactory):
         self._lowest_bound = beta
         self.buying_threshold = self.selling_threshold = beta
         self._balance = beta
+        self._threshold = beta
+        self._number_of_vagents = number
 
 
 class RealAgentNFactory(ItertorMixin, IndexMixin):
@@ -276,9 +284,9 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
         self._agents_sort_asc_lower = sorted(self.agents, key=attrgetter("_lowest_bound"))
         self._agents_sort_asc_upper = sorted(self.agents, key=attrgetter("_uppest_bound"))
 
-        self._alpha_list.sort()
+        # self._alpha_list.sort()
         self._alpha_list = np.array(self._alpha_list)
-
+        np.savetxt('./alpha_list.txt', self._alpha_list, fmt="%s", delimiter=',')
         # self._num_of_agents_list = np.array(self._num_of_agents_list)
         # plt.plot(self._delta_list, self._num_of_agents_list)
 
@@ -289,6 +297,7 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
         # self._uppest_bound = self.agents[-1]._uppest_bound
         self._lowest_bound = self._agents_sort_asc_lower[0]._lowest_bound
         self._uppest_bound = self._agents_sort_asc_upper[-1]._uppest_bound
+        # import ipdb; ipdb.set_trace()
 
     def set_agents_sort_asc_lower(self):
         self.agents = self._agents_sort_asc_lower
@@ -343,6 +352,9 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
 
     @property
     def distribution(self):
+        """
+        return the number of virtual agents in markets
+        """
         from operator import itemgetter, attrgetter
         agents = sorted(self.agents, key=attrgetter("_balance"))
         _distribution = {}
@@ -356,6 +368,9 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
 
     @property
     def distribution2(self):
+        """
+        return the number of real agents in markets
+        """
         from operator import itemgetter, attrgetter
         agents = sorted(self.agents, key=attrgetter("_balance"))
         _distribution = {}
@@ -388,22 +403,43 @@ class RealAgentNFactory(ItertorMixin, IndexMixin):
         # return _details
 
         _details = {}
+        _tmp = []
+        # for real_agent in self.agents:
+        #     width = (real_agent._uppest_bound - real_agent._lowest_bound) / (2 * len(real_agent))
+        #     # print("width: {}".format(width))
 
-        for real_agent in self.agents:
-            width = (real_agent._uppest_bound - real_agent._lowest_bound) / (2 * len(real_agent))
-            # print("width: {}".format(width))
-            k1 = 'buy-{:.5f}'.format(width)
-            k2 = 'sell-{:.5f}'.format(width)
-            if k1 not in _details:
-                _details[k1] = 0
-            if k2 not in _details:
-                _details[k2] = 0
+        #     # k1 = 'buy-{:.5f}'.format(width)
+        #     # k2 = 'sell-{:.5f}'.format(width)
+        #     # if k1 not in _details:
+        #     #     _details[k1] = 0
+        #     # if k2 not in _details:
+        #     #     _details[k2] = 0
+        #     to_sell = 0
+        #     to_buy = 0
+        #     for agent in real_agent:
+        #         if agent.state == constants.STATE_WANT_TO_BUY:
+        #             # _details[k1] += 1
+        #             to_buy += 1
+        #         if agent.state == constants.STATE_WANT_TO_SELL:
+        #             # _details[k2] += 1
+        #             to_sell += 1
 
-            for agent in real_agent:
-                if agent.state == constants.STATE_WANT_TO_BUY:
-                    _details[k1] += 1
-                if agent.state == constants.STATE_WANT_TO_SELL:
-                    _details[k2] += 1
+        #     _tmp.append([width, to_buy, to_sell])
+
+        from operator import itemgetter, attrgetter
+        # agents = sorted(self.agents, key=attrgetter("_alpha"))
+        agents = self.agents
+        # for width, to_buy, to_sell in tmp:
+        #     k1 = 'buy-{:.5f}'.format(width)
+        #     k2 = 'sell-{:.5f}'.format(width)
+        #     _details[k1] = to_buy
+        #     _details[k2] = to_sell
+        for agent in agents:
+            k1 = 'buy-{:.5f}'.format(agent._alpha)
+            k2 = 'sell-{:.5f}'.format(agent._alpha)
+            # _details[k1] = agent._vagent_to_buy
+            # _details[k2] = agent._vagent_to_sell
+            _details[agent._alpha] = agent._vagent_to_buy + agent._vagent_to_sell
         # import ipdb; ipdb.set_trace()
         return _details
 
@@ -425,7 +461,8 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
         # points = 300
         # step_of_beta = (upper_bound_of_beta - lower_bound_of_beta) / points
         _sum = 0
-        factor = 50
+        # factor = 50
+        factor = 1
         for beta in frange(lower_bound_of_beta,
                            upper_bound_of_beta,
                            step_of_beta):
@@ -433,18 +470,24 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
             _sum += _gamma(beta, k_beta, theta_beta)
 
         B = total_stocks_of_N_agents/_sum
+
         B *= 0.2
+        B = 1.3
+        k_beta = 2.6
+        theta_beta = 0.05
+
         self.agents = []
         self._cdf = [0]
-
+        # import ipdb; ipdb.set_trace()
         for beta in frange(lower_bound_of_beta,
                            upper_bound_of_beta,
                            step_of_beta):
             beta *= factor
             num_real_agents = int(round(B*_gamma(beta, k_beta, theta_beta)))
             if num_real_agents > 0:
-                real_agent1 = RealAgentD(beta/factor, num_real_agents, constants.STATE_WANT_TO_SELL)
-                real_agent2 = RealAgentD(beta/factor, num_real_agents, constants.STATE_WANT_TO_BUY)
+                # import ipdb; ipdb.set_trace()
+                real_agent1 = RealAgentD(beta/factor, num_real_agents * 1, constants.STATE_WANT_TO_SELL)
+                real_agent2 = RealAgentD(beta/factor, num_real_agents * 1, constants.STATE_WANT_TO_BUY)
                 self.agents.append(real_agent1)
                 self.agents.append(real_agent2)
                 self._cdf.append(self._cdf[-1] + num_real_agents)
@@ -484,7 +527,7 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
 
     @property
     def distribution(self):
-        'number of/distribution of virtual agents'
+        'distribution of virtual agents'
         from operator import itemgetter, attrgetter
         agents = sorted(self.agents, key=attrgetter("_balance"))
         _distribution = {}
@@ -511,7 +554,7 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
     @property
     def details(self):
         _details = {}
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         for real_agent in self.agents:
             for agent in real_agent:
                 k1 = 'buy-{}'.format(agent.buying_threshold)
@@ -525,6 +568,11 @@ class RealAgentDFactory(ItertorMixin, IndexMixin):
                 if agent.state == constants.STATE_WANT_TO_SELL:
                     _details[k2] += 1
         print(self._cdf)
+        # import ipdb; ipdb.set_trace()
+        _details = {}
+        for agent in self.agents:
+            _details[agent._threshold] = agent._number_of_vagents
+
         return _details
 
 
